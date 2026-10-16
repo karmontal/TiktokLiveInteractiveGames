@@ -22,6 +22,7 @@ LIVEBRIDGE_TOKEN=test python -m livebridge
 - `http://127.0.0.1:8765/health`: حالة الاتصال
 - `http://127.0.0.1:8765/stats?token=test`: أرقام البث (مشاهدين، منضمين، دايموندز)
 - `ws://127.0.0.1:8765/ws?token=test`: هون بتتصل اللعبة
+- `http://127.0.0.1:8765/overlay/test.html?token=test`: شاشة تجربة (720×1280) بتعرض الأحداث مباشرة. بتنحط بـ OBS كـ Browser Source
 
 تجربة حدث معيّن (مثلاً هدية كبيرة عشان تجرّب أنيميشن):
 ```bash

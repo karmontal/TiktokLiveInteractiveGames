@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>LiveBridge Test</title>
+<!--
+  Pipeline test screen for OBS (Browser Source, 720x1280).
+  Open: http://127.0.0.1:8765/overlay/test.html?token=YOUR_TOKEN
+  Not a game: it only proves TikTok events reach the screen and the stream.
+-->
+<style>
+  :root {
+    --bg1: #1b1446; --bg2: #0b0820; --card: rgba(255,255,255,.08); --text: #fff;
+    --muted: rgba(255,255,255,.65); --accent: #ffd23f; --like: #ff4d7d; --ok: #3ddc84; --bad: #ff5c5c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 720px; height: 1280px; overflow: hidden; }
+  body {
+    background: radial-gradient(circle at 50% 0%, var(--bg1), var(--bg2) 70%);
+    color: var(--text); font-family: "SF Arabic", "Geeza Pro", "Tahoma", system-ui, sans-serif;
+  }
+  header { padding: 48px 32px 16px; text-align: center; }
+  header h1 { font-size: 54px; line-height: 1.2; }
+  header h1 b { color: var(--accent); direction: ltr; unicode-bidi: isolate; }
+  header p { margin-top: 10px; font-size: 26px; color: var(--muted); }
+  .stats { display: flex; gap: 16px; padding: 16px 32px; }
+  .stat { flex: 1; background: var(--card); border-radius: 20px; padding: 16px; text-align: center; }
+  .stat .n { font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 22px; color: var(--muted); }
+  .stat.likes .n { color: var(--like); }
+  .stat.gifts .n { color: var(--accent); }
+  #players {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px;
+    padding: 16px 32px; height: 610px; align-content: start; overflow: hidden;
+  }
+  .player { text-align: center; animation: pop .4s ease-out; }
+  .player .av {
+    width: 96px; height: 96px; margin: 0 auto; border-radius: 50%; overflow: hidden;
+    border: 4px solid rgba(255,255,255,.25); background: #3a2f7a;
+    display: grid; place-items: center; font-size: 40px; font-weight: 800;
+  }
+  .player .av img { width: 100%; height: 100%; object-fit: cover; }
+  .player .nm { margin-top: 6px; font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player.boost .av { border-color: var(--accent); box-shadow: 0 0 24px var(--accent); }
+  #feed { position: absolute; bottom: 32px; right: 32px; left: 32px; display: flex; flex-direction: column; gap: 8px; }
+  .item {
+    background: var(--card); border-radius: 14px; padding: 10px 16px; font-size: 24px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: slide .3s ease-out;
+  }
+  .item b { color: var(--accent); }
+  #toast {
+    position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(.6); opacity: 0;
+    background: linear-gradient(135deg, #ffd23f, #ff7a3d); color: #1b1446; border-radius: 28px;
+    padding: 28px 40px; text-align: center; font-weight: 800; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    transition: transform .35s cubic-bezier(.2,1.6,.4,1), opacity .25s; min-width: 520px;
+  }
+  #toast.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  #toast .who { font-size: 44px; }
+  #toast .what { font-size: 32px; margin-top: 6px; }
+  #status { position: absolute; top: 14px; left: 14px; font-size: 16px; color: var(--muted); direction: ltr; }
+  #status::before { content: "●"; margin-right: 6px; color: var(--bad); }
+  #status.on::before { color: var(--ok); }
+  @keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes slide { from { transform: translateX(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
+</style>
+</head>
+<body>
+  <div id="status">connecting…</div>
+  <header>
+    <h1>اكتب <b>!join</b> وادخل</h1>
+    <p>بث تجريبي: كل لايك وفولو وهدية بيظهر هون</p>
+  </header>
+  <section class="stats">
+    <div class="stat"><div class="n" id="nPlayers">0</div><div class="l">لاعبين</div></div>
+    <div class="stat likes"><div class="n" id="nLikes">0</div><div class="l">لايكات</div></div>
+    <div class="stat gifts"><div class="n" id="nDiamonds">0</div><div class="l">كوينز</div></div>
+  </section>
+  <section id="players"></section>
+  <section id="feed"></section>
+  <div id="toast"><div class="who"></div><div class="what"></div></div>
+
+<script>
+const MAX_PLAYERS = 25;   // 5 x 5 grid
+const MAX_FEED = 6;
+const params = new URLSearchParams(location.search);
+const wsUrl = `ws://${params.get("host") || location.host || "127.0.0.1:8765"}/ws?token=${encodeURIComponent(params.get("token") || "")}`;
+
+const $ = (id) => document.getElementById(id);
+const players = new Map();          // user id -> element
+let likes = 0, diamonds = 0, toastTimer = null;
+const toastQueue = [];
+
+function avatarEl(user) {
+  const box = document.createElement("div");
+  box.className = "av";
+  box.textContent = (user.name || "?").trim().charAt(0).toUpperCase();
+  if (user.avatar) {
+    const img = new Image();
+    img.referrerPolicy = "no-referrer";
+    img.onload = () => { box.textContent = ""; box.appendChild(img); };
+    img.src = user.avatar;
+  }
+  return box;
+}
+
+function addPlayer(user) {
+  if (players.has(user.id)) return players.get(user.id);
+  const el = document.createElement("div");
+  el.className = "player";
+  const nm = document.createElement("div");
+  nm.className = "nm";
+  nm.textContent = user.name;
+  el.append(avatarEl(user), nm);
+  $("players").prepend(el);
+  players.set(user.id, el);
+  while (players.size > MAX_PLAYERS) {            // oldest player leaves the screen
+    const [oldId, oldEl] = players.entries().next().value;
+    oldEl.remove();
+    players.delete(oldId);
+  }
+  $("nPlayers").textContent = players.size;
+  return el;
+}
+
+function boost(user) {
+  const el = players.get(user?.id);
+  if (!el) return;
+  el.classList.remove("boost");
+  void el.offsetWidth;
+  el.classList.add("boost");
+  setTimeout(() => el.classList.remove("boost"), 1500);
+}
+
+function feed(html) {
+  const item = document.createElement("div");
+  item.className = "item";
+  item.innerHTML = html;
+  $("feed").append(item);
+  while ($("feed").children.length > MAX_FEED) $("feed").firstChild.remove();
+}
+
+function showToast(who, what) {
+  toastQueue.push([who, what]);
+  if (!toastTimer) nextToast();
+}
+function nextToast() {
+  const next = toastQueue.shift();
+  if (!next) { toastTimer = null; return; }
+  $("toast").querySelector(".who").textContent = next[0];
+  $("toast").querySelector(".what").textContent = next[1];
+  $("toast").classList.add("show");
+  toastTimer = setTimeout(() => {
+    $("toast").classList.remove("show");
+    toastTimer = setTimeout(nextToast, 400);
+  }, 2600);
+}
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function handle(ev) {
+  const name = ev.user ? `<b>${esc(ev.user.name)}</b>` : "";
+  switch (ev.type) {
+    case "join":    addPlayer(ev.user); feed(`${name} دخل اللعبة 🎮`); break;
+    case "comment": if (!/^!?join$|^دخول$|^ادخل$/i.test(ev.text.trim())) feed(`${name}: ${esc(ev.text)}`); break;
+    case "like":    likes += ev.count; $("nLikes").textContent = likes; boost(ev.user); break;
+    case "follow":  feed(`${name} عمل فولو ⭐`); boost(ev.user); break;
+    case "share":   feed(`${name} عمل شير 📣`); boost(ev.user); break;
+    case "gift":
+      diamonds += ev.value; $("nDiamonds").textContent = diamonds;
+      feed(`${name} بعت ${esc(ev.gift.name)} x${ev.count} 🎁`);
+      boost(ev.user);
+      if (ev.gift.tier !== "small") showToast(ev.user.name, `${ev.gift.name} x${ev.count}`);
+      break;
+    case "stream_end": feed("البث خلص"); break;
+  }
+}
+
+function connect() {
+  const ws = new WebSocket(wsUrl);
+  ws.onopen = () => { $("status").textContent = "connected"; $("status").classList.add("on"); };
+  ws.onmessage = (msg) => { try { handle(JSON.parse(msg.data)); } catch (e) { console.error(e); } };
+  ws.onclose = () => {
+    $("status").textContent = "disconnected, retrying…"; $("status").classList.remove("on");
+    setTimeout(connect, 2000);
+  };
+}
+connect();
+</script>
+</body>
+</html>

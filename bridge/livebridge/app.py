@@ -6,9 +6,11 @@ import asyncio
 import logging
 import secrets
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .config import Settings
@@ -19,6 +21,7 @@ from .normalizer import Normalizer
 log = logging.getLogger(__name__)
 
 KEEPALIVE_S = 15
+OVERLAY_DIR = Path(__file__).resolve().parent.parent / "overlay"
 
 
 def make_source(settings: Settings):
@@ -67,6 +70,8 @@ def create_app(settings: Settings, source=None) -> FastAPI:
     app.state.hub = hub
     app.state.normalizer = norm
     app.state.source = source
+    if OVERLAY_DIR.is_dir():  # browser screens for OBS; they still need the token to open /ws
+        app.mount("/overlay", StaticFiles(directory=OVERLAY_DIR), name="overlay")
 
     def authorized(token: str | None) -> bool:
         return not settings.token or secrets.compare_digest(token or "", settings.token)

@@ -35,6 +35,12 @@ def test_health_is_public(client):
     assert body["connected"] is True
 
 
+def test_overlay_page_is_served(client):
+    resp = client.get("/overlay/test.html")
+    assert resp.status_code == 200
+    assert "/ws?token=" in resp.text
+
+
 def test_stats_needs_token(client):
     assert client.get("/stats").status_code == 401
     assert client.get("/stats", params={"token": TOKEN}).status_code == 200
