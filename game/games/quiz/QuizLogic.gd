@@ -4,7 +4,6 @@ extends RefCounted
 ## intermission -> (question -> reveal) x questions_per_round -> board -> intermission ...
 
 const LETTERS := ["A", "B", "C", "D"]
-const BOT_PREFIX := "bot:"
 
 # Timing (seconds)
 var intermission_s := 15.0
@@ -22,12 +21,6 @@ var max_removed := 2             # always leave the right answer and one wrong o
 var small_gift_seconds := 3.0
 var big_gift_seconds := 10.0
 var max_extra_seconds := 20.0    # per question, all gifts together
-
-# Filler players: they answer (so the percentages move) but never score or rank.
-# Each real viewer who answered the last question takes one bot's place.
-var bots_min := 5
-var bots_max := 10
-var bot_accuracy := 0.4
 
 var rng := RandomNumberGenerator.new()
 
@@ -57,8 +50,6 @@ var _by_category := {}           # category -> Array of question dicts
 var _used := {}                  # question text -> true
 var _elapsed := 0.0
 var _extra := 0.0
-var _bots: Array = []            # [{"id", "at", "choice"}] still to answer
-var _last_real_answered := 0
 
 
 static func parse_choice(text: String) -> int:
@@ -72,10 +63,6 @@ static func parse_choice(text: String) -> int:
 	if t in ["D", "د", "4", "٤"]:
 		return 3
 	return -1
-
-
-static func is_bot(uid: String) -> bool:
-	return uid.begins_with(BOT_PREFIX)
 
 
 ## Questions as in the pack files: {"q", "options": [right, wrong, wrong, wrong], "category"}.
@@ -110,7 +97,6 @@ func reset_stream() -> void:
 	change_tokens.clear()
 	_used.clear()
 	last_champion = {}
-	_last_real_answered = 0
 
 
 func answered_count() -> int:
@@ -137,7 +123,6 @@ func tick(delta: float) -> Array[Dictionary]:
 	time_left -= delta
 	if phase == "question":
 		_elapsed += delta
-		_run_bots(out)
 	if time_left > 0.0:
 		return out
 	match phase:
@@ -252,7 +237,6 @@ func _enter_question(out: Array[Dictionary]) -> void:
 	_elapsed = 0.0
 	_extra = 0.0
 	_set_phase("question", question_s)
-	_plan_bots()
 	out.append({"kind": "question", "index": question_index, "total": round_questions.size(),
 			"text": current["text"], "options": options, "category": current["category"]})
 
@@ -260,11 +244,7 @@ func _enter_question(out: Array[Dictionary]) -> void:
 func _reveal(out: Array[Dictionary]) -> void:
 	_set_phase("reveal", reveal_s)
 	var winners := []
-	var real := 0
 	for uid in answers:
-		if is_bot(uid):
-			continue
-		real += 1
 		var a: Dictionary = answers[uid]
 		if a["choice"] != current["answer"]:
 			continue
@@ -277,7 +257,6 @@ func _reveal(out: Array[Dictionary]) -> void:
 		correct[uid] = correct.get(uid, 0) + 1
 		winners.append({"user": players[uid], "points": points, "time": a["t"], "multiplier": mult})
 	winners.sort_custom(func(x, y): return x["time"] < y["time"])
-	_last_real_answered = real
 	out.append({"kind": "reveal", "answer": current["answer"], "fastest": winners.slice(0, 3),
 			"right": right_count(), "answered": answered_count(),
 			"boosted": winners.filter(func(w): return w["multiplier"] > 1)})
@@ -347,32 +326,6 @@ func _add_time(seconds: float) -> float:
 func _boost(uid: String, x: int, source: String, out: Array[Dictionary]) -> void:
 	multiplier[uid] = maxi(multiplier.get(uid, 1), x)
 	out.append({"kind": "multiplier", "user": players[uid], "x": multiplier[uid], "source": source})
-
-
-func _plan_bots() -> void:
-	_bots.clear()
-	var n := maxi(0, rng.randi_range(bots_min, bots_max) - _last_real_answered)
-	for i in n:
-		var choice: int = current["answer"]
-		if rng.randf() >= bot_accuracy:
-			choice = (choice + rng.randi_range(1, 3)) % 4
-		_bots.append({"id": "%s%d" % [BOT_PREFIX, i], "at": rng.randf_range(1.5, question_s - 2.0),
-				"choice": choice})
-
-
-func _run_bots(out: Array[Dictionary]) -> void:
-	for bot in _bots.duplicate():
-		if bot["at"] > _elapsed:
-			continue
-		_bots.erase(bot)
-		var choice: int = bot["choice"]
-		if choice in removed:                    # removed meanwhile: pick what is left
-			var left := []
-			for i in 4:
-				if not (i in removed):
-					left.append(i)
-			choice = left[rng.randi_range(0, left.size() - 1)]
-		_answer(bot["id"], choice, out)
 
 
 # ---------------------------------------------------------------- helpers

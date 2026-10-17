@@ -179,12 +179,9 @@ func test_switching_team() -> void:
 
 # ---------------------------------------------------------------- quiz
 
-func quiz(bots := false) -> QuizLogic:
+func quiz() -> QuizLogic:
 	var q := QuizLogic.new()
 	q.rng.seed = 7
-	if not bots:
-		q.bots_min = 0
-		q.bots_max = 0
 	q.load_questions(JSON.parse_string(FileAccess.get_file_as_string(QUIZ_PACK))["questions"])
 	q.start()
 	return q
@@ -337,28 +334,12 @@ func test_quiz_likes_remove_wrong_answers() -> void:
 	check(not q.answers.has("2"), "removed option cannot be picked")
 
 
-func test_quiz_bots_answer_but_never_score() -> void:
-	var q := quiz(true)
+func test_quiz_only_real_viewers_answer() -> void:
+	var q := quiz()
 	to_question(q)
 	for i in 150:
 		q.tick(0.1)
-	check(q.answered_count() >= 5, "bots answered (%d)" % q.answered_count())
-	q.tick(q.time_left + 0.01)
-	check(q.score.is_empty() and q.top(10).is_empty(), "bots never on the leaderboard")
-
-
-func test_quiz_real_viewers_replace_bots() -> void:
-	var q := quiz(true)
-	q.bots_min = 6
-	q.bots_max = 6
-	to_question(q)
-	for i in 4:
-		say(q, str(i), "A")
-	q.tick(q.time_left + 0.01)      # reveal: 4 real answered
-	q.tick(q.time_left + 0.01)      # next question
-	for i in 150:
-		q.tick(0.1)
-	check(q.answered_count() == 2, "6 bots - 4 real viewers = 2 bots (%d)" % q.answered_count())
+	check(q.answered_count() == 0 and q.counts == [0, 0, 0, 0], "no virtual players: nobody answers by itself")
 
 
 func test_quiz_round_cycle_board_and_champion() -> void:
