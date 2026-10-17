@@ -111,6 +111,62 @@ func test_mvp_and_new_round() -> void:
 	check(t.team_of.size() == 2, "teams kept across rounds")
 
 
+func bots_in(t, team: int) -> int:
+	var n := 0
+	for uid in t.team_of:
+		if TugLogic.is_bot(uid) and t.team_of[uid] == team:
+			n += 1
+	return n
+
+
+func test_bots_spawn_balanced() -> void:
+	var t := TugLogic.new()
+	t.spawn_bots(7)
+	check(t.team_of.size() == 7, "7 bots spawned")
+	check(absi(bots_in(t, TugLogic.A) - bots_in(t, TugLogic.B)) <= 1, "bots split evenly")
+
+
+func test_respawn_replaces_old_bots() -> void:
+	var t := TugLogic.new()
+	t.spawn_bots(10)
+	var out := t.spawn_bots(5)
+	check(t.team_of.size() == 5, "only the new bots remain")
+	check(out.filter(func(fx): return fx["kind"] == "left").size() == 10, "old bots left")
+
+
+func test_bots_pull_weakly_and_cancel_out() -> void:
+	var t := TugLogic.new()
+	t.rng.seed = 42
+	t.spawn_bots(8)
+	var pulls := 0
+	for i in 600:                       # 60 seconds
+		for fx in t.tick(0.1):
+			pulls += 1
+			check(is_equal_approx(fx["amount"], t.bot_pull), "bot pull is tiny")
+	check(pulls > 50, "bots keep pulling (%d)" % pulls)
+	check(absf(t.rope) < 0.1, "8 bots alone stay near the center (%.3f)" % t.rope)
+
+
+func test_real_viewer_replaces_a_bot() -> void:
+	var t := TugLogic.new()
+	t.spawn_bots(6)
+	var before := bots_in(t, TugLogic.A)
+	var out := t.handle({"type": "comment", "user": u("1"), "text": "A"})
+	check(bots_in(t, TugLogic.A) == before - 1, "one bot left team A")
+	check(out[1]["kind"] == "left", "left effect for the screen")
+
+
+func test_bot_is_never_mvp() -> void:
+	var t := TugLogic.new()
+	t.spawn_bots(2)
+	for i in 100:
+		t.tick(1.0)
+	check(t.mvp(TugLogic.A).is_empty() and t.mvp(TugLogic.B).is_empty(), "bots are not MVP")
+	t.handle({"type": "comment", "user": u("1"), "text": "A"})
+	t.handle({"type": "like", "user": u("1"), "count": 1})
+	check(t.mvp(TugLogic.A)["user"]["id"] == "1", "a real viewer is MVP")
+
+
 func test_switching_team() -> void:
 	var t := TugLogic.new()
 	t.handle({"type": "comment", "user": u("1"), "text": "A"})

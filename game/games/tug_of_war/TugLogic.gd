@@ -14,6 +14,17 @@ var share_multiplier := 2.0
 var gift_pull_per_diamond := 0.01
 var gift_pull_cap := 0.25        # one gift never moves more than a quarter of the way
 
+# Filler players so an empty stream does not look dead. They pull a quarter of
+# one like every few seconds, are split evenly so they cancel out, never become
+# MVP, and each real viewer who joins a team replaces one of that team's bots.
+const BOT_PREFIX := "bot:"
+const BOT_NAMES := ["نينجا", "صقر", "برق", "نمر", "قمر", "صاروخ", "Turbo", "Ninja",
+		"Falcon", "Rocket", "Blaze", "Pixel", "Comet", "Storm"]
+var bot_pull := 0.001
+var bot_interval_min := 2.0
+var bot_interval_max := 5.0
+var rng := RandomNumberGenerator.new()
+
 var rope := 0.0
 var active := true               # false between rounds: teams can change, the rope cannot
 var team_of := {}                # user_id -> A/B, kept across rounds
@@ -22,6 +33,7 @@ var contribution := {}           # user_id -> rope distance pulled this round
 
 var _boost_until := [0.0, 0.0]
 var _now := 0.0
+var _bot_next := {}              # bot user_id -> time of its next pull
 
 
 static func team_from_text(text: String) -> int:
@@ -33,8 +45,45 @@ static func team_from_text(text: String) -> int:
 	return NONE
 
 
-func tick(delta: float) -> void:
+## Advances time and lets due bots pull. Returns their "pull" effects.
+func tick(delta: float) -> Array[Dictionary]:
 	_now += delta
+	var out: Array[Dictionary] = []
+	for uid in _bot_next.keys():
+		if _now >= _bot_next[uid]:
+			_bot_next[uid] = _now + rng.randf_range(bot_interval_min, bot_interval_max)
+			_pull(players[uid], bot_pull, out)
+	return out
+
+
+static func is_bot(uid: String) -> bool:
+	return uid.begins_with(BOT_PREFIX)
+
+
+## Replaces all bots with `count` new ones, each on the currently smaller team.
+## Returns "left" and "joined" effects for the screen.
+func spawn_bots(count: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for uid in _bot_next.keys():
+		_remove_bot(uid, out)
+	var names := BOT_NAMES.duplicate()
+	for i in mini(count, names.size()):
+		var name: String = names.pop_at(rng.randi_range(0, names.size() - 1))
+		var bot := {"id": "%s%d" % [BOT_PREFIX, i], "name": name, "avatar": ""}
+		_bot_next[bot["id"]] = _now + rng.randf_range(bot_interval_min, bot_interval_max)
+		_ensure_team(bot, out)
+	return out
+
+
+func _remove_bot(uid: String, out: Array[Dictionary]) -> void:
+	var team: int = team_of.get(uid, NONE)
+	var bot: Dictionary = players.get(uid, {})
+	team_of.erase(uid)
+	players.erase(uid)
+	contribution.erase(uid)
+	_bot_next.erase(uid)
+	if team != NONE:
+		out.append({"kind": "left", "team": team, "user": bot})
 
 
 func new_round() -> void:
@@ -77,6 +126,8 @@ func leader() -> int:
 func mvp(team: int) -> Dictionary:
 	var best := ""
 	for uid in contribution:
+		if is_bot(uid):
+			continue
 		if team_of.get(uid, NONE) == team and (best == "" or contribution[uid] > contribution[best]):
 			best = uid
 	if best == "":
@@ -123,6 +174,11 @@ func _assign(user: Dictionary, team: int, out: Array[Dictionary]) -> void:
 		return
 	team_of[uid] = team
 	out.append({"kind": "joined", "team": team, "user": user, "switched": before != NONE})
+	if not is_bot(uid):
+		for other in _bot_next.keys():
+			if team_of.get(other, NONE) == team:
+				_remove_bot(other, out)   # a real viewer takes a bot's place
+				break
 
 
 ## Puts a viewer without a team on the smaller team, so any interaction counts.

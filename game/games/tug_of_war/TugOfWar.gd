@@ -15,8 +15,11 @@ const FEED_LINES := 3
 const TEAM_COLORS := [Color("#3b82f6"), Color("#ef4444")]
 const TEAM_NAME_PAIRS := [["قطط", "كلاب"], ["شاي", "قهوة"], ["صيف", "شتا"], ["بحر", "جبل"]]
 const FONT_PATH := "res://assets/fonts/Cairo.ttf"
+const BOTS_MIN := 5           # filler players at the start of each round (user arg --no-bots turns off)
+const BOTS_MAX := 10
 
 var logic := TugLogic.new()
+var bots_enabled := not ("--no-bots" in OS.get_cmdline_user_args())
 var phase := "play"
 var time_left := ROUND_S
 var round_no := 0
@@ -51,10 +54,11 @@ func _ready() -> void:
 	AvatarCache.avatar_ready.connect(_on_avatar)
 	_on_connection(EventBus.connected)
 	_apply_team_names()
+	_spawn_bots()
 
 
 func _process(delta: float) -> void:
-	logic.tick(delta)
+	_apply(logic.tick(delta), "")
 	time_left -= delta
 	if phase == "play" and (logic.winner() != TugLogic.NONE or time_left <= 0.0):
 		_end_round()
@@ -81,13 +85,28 @@ func _process(delta: float) -> void:
 
 func _on_event(ev: Dictionary) -> void:
 	var name := _user_name(ev.get("user"))
-	for fx in logic.handle(ev):
+	_apply(logic.handle(ev), name)
+	if ev.get("type") == "follow" and ev.get("user") is Dictionary:
+		var uid := str(ev["user"].get("id", ""))
+		if logic.team_of.has(uid):
+			_say("%s عمل فولو: شدّة قوية" % name, logic.team_of[uid])
+
+
+## Shows what TugLogic says happened. Bots get avatars and flashes but no feed lines.
+func _apply(effects: Array[Dictionary], name: String) -> void:
+	if effects.is_empty():
+		return
+	for fx in effects:
 		var team: int = fx["team"]
+		var bot := TugLogic.is_bot(str(fx["user"].get("id", "")))
 		match fx["kind"]:
+			"left":
+				_remove_chip(str(fx["user"].get("id", "")), team)
 			"joined":
 				_add_chip(fx["user"], team)
-				var verb := "انتقل لفريق" if fx["switched"] else "انضم لفريق"
-				_say("%s %s %s" % [name, verb, team_names[team]], team)
+				if not bot:
+					var verb := "انتقل لفريق" if fx["switched"] else "انضم لفريق"
+					_say("%s %s %s" % [_user_name(fx["user"]), verb, team_names[team]], team)
 			"pull":
 				_flash_chip(str(fx["user"]["id"]), team)
 			"boost":
@@ -100,10 +119,6 @@ func _on_event(ev: Dictionary) -> void:
 					_show_popup("%s\n%s ×%d" % [name, gift.get("name", ""), fx["count"]], TEAM_COLORS[team])
 				if tier == "large":
 					_shake = 0.6
-	if ev.get("type") == "follow" and ev.get("user") is Dictionary:
-		var uid := str(ev["user"].get("id", ""))
-		if logic.team_of.has(uid):
-			_say("%s عمل فولو: شدّة قوية" % name, logic.team_of[uid])
 	for t in 2:
 		_count_labels[t].text = "%d لاعب" % logic.team_count(t)
 
@@ -152,9 +167,15 @@ func _new_round() -> void:
 	team_names = TEAM_NAME_PAIRS[round_no % TEAM_NAME_PAIRS.size()]
 	_apply_team_names()
 	logic.new_round()
+	_spawn_bots()
 	phase = "play"
 	time_left = ROUND_S
 	_result.visible = false
+
+
+func _spawn_bots() -> void:
+	if bots_enabled:
+		_apply(logic.spawn_bots(randi_range(BOTS_MIN, BOTS_MAX)), "")
 
 
 func _apply_team_names() -> void:
@@ -181,6 +202,15 @@ func _add_chip(user: Dictionary, team: int) -> void:
 		_chips[team][old].queue_free()
 		_chips[team].erase(old)
 	_layout(other)
+	_layout(team)
+
+
+func _remove_chip(uid: String, team: int) -> void:
+	if not _chips[team].has(uid):
+		return
+	_chips[team][uid].queue_free()
+	_chips[team].erase(uid)
+	_order[team].erase(uid)
 	_layout(team)
 
 
