@@ -1,0 +1,4 @@
+# One word per line. Matching ignores case, Arabic diacritics, tatweel,
+# and treats أ/إ/آ as ا, ة as ه, ى as ي. Names with these words become PlayerNNNN,
+# comments with them are not shown on screen.
+# Add your own list here.

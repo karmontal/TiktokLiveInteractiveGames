@@ -1,0 +1,17 @@
+# /etc/systemd/system/livebridge.service
+[Unit]
+Description=LiveBridge (TikTok LIVE events -> games)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=livebridge
+WorkingDirectory=/opt/livebridge/bridge
+EnvironmentFile=/opt/livebridge/bridge/.env
+ExecStart=/opt/livebridge/bridge/.venv/bin/python -m livebridge
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
