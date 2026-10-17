@@ -211,7 +211,39 @@ def football_stadium() -> np.ndarray:
     return tr.render()
 
 
-TRACKS = {"quiz_think": quiz_think, "tug_energy": tug_energy, "football_stadium": football_stadium}
+def climb_adventure() -> np.ndarray:
+    """116 BPM, D minor, rising arpeggios over a driving beat: always going up."""
+    tr = Track(116, 16)
+    prog = [(50, True), (46, False), (48, False), (45, False)]      # Dm Bb C A
+    for bar in range(16):
+        root, minor = prog[bar % 4]
+        notes = triad(root, minor)
+        b0 = bar * 4
+        for beat in range(4):
+            tr.add("drums", kick(), b0 + beat, 0.5 if beat % 2 == 0 else 0.35)
+            tr.pump(b0 + beat, 0.4)
+            tr.add("drums", hat(0.05), b0 + beat + 0.5, 0.14, pan=-0.3)
+            tr.add("drums", hat(0.03), b0 + beat + 0.75, 0.08, pan=0.3)
+            tr.add("music", bass(hz(root - 12), 0.3 * tr.beat), b0 + beat, 0.28)
+            tr.add("music", bass(hz(root), 0.2 * tr.beat), b0 + beat + 0.5, 0.18)
+        tr.add("drums", snare(), b0 + 1, 0.3)
+        tr.add("drums", snare(), b0 + 3, 0.3)
+        for n in notes:
+            tr.add("music", pad(hz(n + 12), 4 * tr.beat), b0, 0.035, pan=0.2)
+        arp = notes + [n + 12 for n in notes]                           # climbs two octaves a bar
+        for i in range(16):
+            tr.add("music", pluck(hz(arp[i % 6] + 12 + 12 * (i // 12)), 0.22, 0.65), b0 + i * 0.25, 0.065,
+                   pan=0.35 if i % 2 else -0.35)
+        if bar % 4 == 3:
+            tr.add("music", brass(hz(notes[2] + 12), 1.5 * tr.beat), b0 + 2, 0.08)
+        if bar % 8 == 7:
+            for i, f in enumerate((120, 150, 180, 220)):
+                tr.add("drums", tom(f), b0 + 2 + i * 0.5, 0.3)
+    return tr.render()
+
+
+TRACKS = {"quiz_think": quiz_think, "tug_energy": tug_energy, "football_stadium": football_stadium,
+          "climb_adventure": climb_adventure}
 
 
 def save_ogg(name: str, stereo: np.ndarray) -> Path:

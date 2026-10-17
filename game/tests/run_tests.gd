@@ -3,6 +3,7 @@ extends SceneTree
 
 const TugLogic := preload("res://games/tug_of_war/TugLogic.gd")
 const QuizLogic := preload("res://games/quiz/QuizLogic.gd")
+const ClimbLogic := preload("res://games/climb/ClimbLogic.gd")
 const QUIZ_PACK := "res://games/quiz/packs/general.json"
 
 var _failed := 0
@@ -382,3 +383,125 @@ func test_quiz_no_repeats_within_a_stream() -> void:
 			q.tick(q.time_left + 0.01)
 		q.tick(q.time_left + 0.01)   # board -> intermission
 	check(repeats < 10, "few repeats while fresh questions remain (%d)" % repeats)
+
+
+# ---------------------------------------------------------------- climb
+
+func climb() -> ClimbLogic:
+	var c := ClimbLogic.new()
+	c.rng.seed = 7
+	c.start()
+	return c
+
+
+func kinds_of(out: Array[Dictionary]) -> Array:
+	return out.map(func(fx): return fx["kind"])
+
+
+func test_climb_any_comment_or_entry_joins_on_floor_0() -> void:
+	var c := climb()
+	var out := c.handle({"type": "comment", "user": u("1"), "text": "يلا"})
+	c.handle({"type": "join", "user": u("2")})
+	check(kinds_of(out) == ["joined"], "comment joins")
+	check(c.floor_of["1"] == 0.0 and c.floor_of["2"] == 0.0, "both on the ground")
+	check(kinds_of(c.handle({"type": "comment", "user": u("1"), "text": "again"})).is_empty(), "joins once")
+
+
+func test_climb_likes_follow_share_move_up() -> void:
+	var c := climb()
+	c.handle({"type": "like", "user": u("1"), "count": 10})
+	check(is_equal_approx(c.floor_of["1"], 10 * c.like_floors), "likes climb")
+	var out := c.handle({"type": "follow", "user": u("1")})
+	check("checkpoint" in kinds_of(out), "follow sets a checkpoint")
+	check(c.checkpoint["1"] == floorf(c.floor_of["1"]), "checkpoint at the current floor")
+	c.handle({"type": "share", "user": u("1")})
+	check(c.wings.has("1"), "share gives wings")
+	check(is_equal_approx(c.floor_of["1"], 10 * c.like_floors + c.follow_floors + c.share_floors), "all add up")
+
+
+func test_climb_gift_is_capped_and_large_gift_lifts_everyone() -> void:
+	var c := climb()
+	c.handle({"type": "join", "user": u("2")})
+	c.handle({"type": "gift", "user": u("1"), "value": 5, "gift": {"tier": "small"}})
+	check(is_equal_approx(c.floor_of["1"], 5.0) and c.floor_of["2"] == 0.0, "small gift: diamonds = floors")
+	var out := c.handle({"type": "gift", "user": u("1"), "value": 299, "gift": {"tier": "large"}})
+	check("lift_all" in kinds_of(out), "large gift announced")
+	check(is_equal_approx(c.floor_of["1"], 5.0 + c.gift_floors_cap), "giver capped")
+	check(is_equal_approx(c.floor_of["2"], c.big_gift_everyone), "everyone else lifted")
+
+
+func test_climb_summit_ends_round_and_counts_win() -> void:
+	var c := climb()
+	c.handle({"type": "join", "user": u("2")})
+	c.handle({"type": "like", "user": u("2"), "count": 20})
+	var out: Array[Dictionary] = []
+	while c.phase == "climb":
+		out = c.handle({"type": "like", "user": u("1"), "count": 50})
+	check(kinds_of(out).slice(-3) == ["climb", "summit", "round_end"], "summit then round end")
+	check(c.floor_of["1"] == c.top_floor, "stops at the top")
+	var end: Dictionary = out[-1]
+	check(end["winner"]["user"]["id"] == "1" and end["winner"]["top"], "winner reached the top")
+	check(end["top"][1]["user"]["id"] == "2", "ranking second place")
+	check(c.wins["1"] == 1 and end["hall"][0]["wins"] == 1, "hall of fame")
+	check(c.handle({"type": "like", "user": u("2"), "count": 50}).is_empty(), "no climbing between rounds")
+	out = c.tick(c.result_s + 0.01)
+	check(kinds_of(out) == ["round_start"] and c.round_no == 2, "next round starts")
+	check(c.floor_of["1"] == 0.0 and c.floor_of["2"] == 0.0, "everyone back on the ground")
+
+
+func test_climb_timeout_highest_wins() -> void:
+	var c := climb()
+	c.hazard_every_min = 9999.0
+	c.hazard_every_max = 9999.0
+	c._next_hazard = 9999.0
+	c.handle({"type": "like", "user": u("1"), "count": 5})
+	c.handle({"type": "like", "user": u("2"), "count": 15})
+	var out := c.tick(c.round_s + 0.01)
+	check(kinds_of(out) == ["round_end"] and out[0]["winner"]["user"]["id"] == "2", "highest wins")
+	check(not out[0]["winner"]["top"], "did not reach the top")
+
+
+func test_climb_empty_round_has_no_winner() -> void:
+	var c := climb()
+	c.handle({"type": "join", "user": u("1")})
+	var out := c.tick(c.round_s + 0.01)
+	check(out[0]["winner"].is_empty() and c.wins.is_empty(), "nobody climbed, nobody wins")
+
+
+func test_climb_hazard_warns_then_drops_but_respects_wings_and_checkpoint() -> void:
+	var c := climb()
+	for id in ["low", "plain", "winged", "saved"]:
+		c.handle({"type": "join", "user": u(id)})
+	c.floor_of["plain"] = 30.0
+	c.floor_of["winged"] = 30.0
+	c.wings["winged"] = true
+	c.floor_of["saved"] = 30.0
+	c.checkpoint["saved"] = 28.0
+	c._next_hazard = 0.0
+	var out := c.tick(0.01)
+	check(kinds_of(out) == ["hazard_warning"], "warning first")
+	check(out[0]["from"] <= 30.0 and out[0]["to"] >= 30.0, "band covers the target")
+	check(c.floor_of["plain"] == 30.0, "nothing falls during the warning")
+	out = c.tick(c.hazard_warning_s)
+	check(kinds_of(out) == ["hazard_strike"], "then the rocks fall")
+	check(c.floor_of["plain"] == 30.0 - c.hazard_drop, "hit climber drops")
+	check(c.floor_of["winged"] == 30.0 and not c.wings.has("winged"), "wings save once")
+	check(c.floor_of["saved"] == 28.0, "never below the checkpoint")
+	check(c.floor_of["low"] == 0.0, "out of the band")
+	check(out[0]["fell"].size() == 2 and out[0]["saved"].size() == 1, "reported")
+
+
+func test_climb_no_hazard_when_everyone_is_low() -> void:
+	var c := climb()
+	c.handle({"type": "like", "user": u("1"), "count": 5})
+	c._next_hazard = 0.0
+	check(c.tick(0.01).is_empty() and c.hazard.is_empty(), "no rocks for climbers near the ground")
+
+
+func test_climb_stream_end_resets_everything() -> void:
+	var c := climb()
+	c.handle({"type": "like", "user": u("1"), "count": 50})
+	c.tick(c.round_s + 0.01)
+	check(c.wins.has("1"), "won")
+	c.handle({"type": "stream_end"})
+	check(c.wins.is_empty() and c.floor_of.is_empty() and c.round_no == 1, "fresh stream")
