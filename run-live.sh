@@ -62,10 +62,9 @@ if [ -z "$GODOT" ]; then
   echo "Godot not found. Put Godot.app in /Applications or run: GODOT=/path/to/Godot ./run-live.sh ..."
   exit 1
 fi
-if [ ! -d "$ROOT/game/.godot" ]; then
-  echo "First run: importing the Godot project ..."
-  "$GODOT" --headless --path "$ROOT/game" --editor --quit >>"$LOGS/game.log" 2>&1
-fi
+# Import new or changed files (music, fonts) every run; quick when nothing changed.
+echo "Importing the Godot project ..."
+"$GODOT" --headless --path "$ROOT/game" --editor --quit >>"$LOGS/game.log" 2>&1
 
 # ---- run and restart
 keep_running() {   # keep_running <name> <log file> <command...>
