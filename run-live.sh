@@ -6,6 +6,7 @@
 #   ./run-live.sh mychannel                  # quiz, general questions
 #   ./run-live.sh mychannel quiz football    # quiz, football questions
 #   ./run-live.sh mychannel tug_of_war
+#   ./run-live.sh mychannel climb
 #   ./run-live.sh mock quiz                  # fake viewers, no TikTok needed
 #
 # Then in LIVE Studio: Window Capture -> the Godot window -> Go LIVE.
@@ -23,7 +24,7 @@ LOGS="$ROOT/logs"
 mkdir -p "$LOGS"
 
 if [ -z "$USERNAME" ]; then
-  echo "usage: ./run-live.sh <tiktok_username|mock> [quiz|tug_of_war] [pack]"
+  echo "usage: ./run-live.sh <tiktok_username|mock> [quiz|tug_of_war|climb] [pack]"
   exit 1
 fi
 USERNAME="${USERNAME#@}"

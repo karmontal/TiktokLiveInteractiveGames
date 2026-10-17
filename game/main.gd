@@ -1,11 +1,13 @@
 extends Node
 ## Picks the game to run: user arg --game=<name> (after `--`), else env LIVE_GAME, else tug_of_war.
+## Games: tug_of_war, quiz, climb.
 ##   --fps-log           print FPS every 5 s (for the server benchmark)
 ## In debug builds (running from the editor) Tab switches to the next game.
 
 const GAMES := {
 	"tug_of_war": "res://games/tug_of_war/TugOfWar.gd",
 	"quiz": "res://games/quiz/QuizGame.gd",
+	"climb": "res://games/climb/ClimbGame.gd",
 }
 
 var _fps_log := false
