@@ -86,3 +86,7 @@ func _unhandled_input(e: InputEvent) -> void:
 				"gift": {"id": 5655, "name": "Rose", "diamonds": 1, "tier": "small"}})
 		KEY_8: inject({"type": "gift", "user": user, "count": 1, "value": 299,
 				"gift": {"id": 6267, "name": "Corgi", "diamonds": 299, "tier": "large"}})
+		KEY_9: inject({"type": "comment", "user": user, "text": ["A", "B", "C", "D"].pick_random()})
+		KEY_0: inject({"type": "like", "user": user, "count": 50, "value": 50})
+		KEY_MINUS: inject({"type": "gift", "user": user, "count": 1, "value": 30,
+				"gift": {"id": 5879, "name": "Doughnut", "diamonds": 30, "tier": "medium"}})
