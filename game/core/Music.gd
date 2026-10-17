@@ -24,10 +24,15 @@ func play(track: String) -> void:
 	if not _enabled or track == _current:
 		return
 	var path := DIR + track + ".ogg"
-	if not ResourceLoader.exists(path):
+	var stream: AudioStreamOggVorbis = null
+	if ResourceLoader.exists(path):
+		stream = load(path)
+	if stream == null and FileAccess.file_exists(path):
+		# Not imported yet (new file, project never reopened in the editor): read the .ogg itself.
+		stream = AudioStreamOggVorbis.load_from_file(ProjectSettings.globalize_path(path))
+	if stream == null:
 		push_warning("music not found: " + path)
 		return
-	var stream: AudioStreamOggVorbis = load(path)
 	stream.loop = true
 	_current = track
 	_player.stream = stream
