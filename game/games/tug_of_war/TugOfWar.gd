@@ -48,6 +48,7 @@ var _status: Label
 
 
 func _ready() -> void:
+	Music.play("tug_energy")
 	_build_ui()
 	EventBus.event_received.connect(_on_event)
 	EventBus.connection_changed.connect(_on_connection)
