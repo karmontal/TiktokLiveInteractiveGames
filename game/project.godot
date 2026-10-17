@@ -1,5 +1,10 @@
 ; Engine configuration file.
-; Godot 4.5, Compatibility renderer (OpenGL 3.3), 720x1280 portrait at 30 fps.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -7,8 +12,8 @@ config_version=5
 
 config/name="TikTok Live Games"
 run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
 run/max_fps=30
-config/features=PackedStringArray("4.5", "GL Compatibility")
 
 [autoload]
 
@@ -22,7 +27,6 @@ window/size/viewport_height=1280
 window/size/window_width_override=450
 window/size/window_height_override=800
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 
 [gui]
 
