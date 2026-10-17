@@ -19,6 +19,7 @@ run/max_fps=30
 
 EventBus="*res://core/EventBus.gd"
 AvatarCache="*res://core/AvatarCache.gd"
+Music="*res://core/Music.gd"
 
 [display]
 
