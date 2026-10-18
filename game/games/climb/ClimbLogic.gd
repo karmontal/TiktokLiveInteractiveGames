@@ -18,7 +18,7 @@ var big_gift_everyone := 3.0     # a large gift also lifts every other climber
 var hazard_every_min := 9.0
 var hazard_every_max := 14.0
 var hazard_warning_s := 2.5      # the band shows on screen before the rocks fall
-var hazard_band := 12.0          # floors covered by one rock fall
+var hazard_band := 5.0           # floors covered by one rock fall
 var hazard_drop := 6.0
 
 var rng := RandomNumberGenerator.new()
@@ -34,6 +34,8 @@ var wings := {}                  # user_id -> true while protected
 var hazard := {}                 # {"from", "to", "in"} while a rock fall is announced
 var winner := {}                 # {"user", "floor", "top": bool} of the last round
 var wins := {}                   # user_id -> rounds won this stream
+var round_likes := {}            # user_id -> likes this round
+var round_gifts := {}            # user_id -> gifts this round
 
 var _next_hazard := 0.0
 
@@ -78,6 +80,8 @@ func handle(ev: Dictionary) -> Array[Dictionary]:
 	var uid := _ensure(user, out)
 	match ev.get("type", ""):
 		"like":
+			if phase == "climb":
+				round_likes[uid] = round_likes.get(uid, 0) + int(ev.get("count", 0))
 			_climb(uid, float(ev.get("count", 0)) * like_floors, out)
 		"follow":
 			_climb(uid, follow_floors, out)
@@ -91,6 +95,8 @@ func handle(ev: Dictionary) -> Array[Dictionary]:
 			_climb(uid, share_floors, out)
 		"gift":
 			var gift: Dictionary = ev.get("gift", {})
+			if phase == "climb":
+				round_gifts[uid] = round_gifts.get(uid, 0) + int(ev.get("count", 1))
 			var amount := minf(float(ev.get("value", 0)) * gift_floors_per_diamond, gift_floors_cap)
 			out.append({"kind": "gift", "user": user, "gift": gift, "count": int(ev.get("count", 1)),
 					"floors": amount})
@@ -200,6 +206,7 @@ func _strike(out: Array[Dictionary]) -> void:
 
 
 func _end_round(out: Array[Dictionary]) -> void:
+	var time_left_at_end := time_left
 	phase = "result"
 	time_left = result_s
 	hazard = {}
@@ -208,7 +215,9 @@ func _end_round(out: Array[Dictionary]) -> void:
 	if not top.is_empty() and top[0]["floor"] > 0.0:
 		var uid := str(top[0]["user"]["id"])
 		wins[uid] = wins.get(uid, 0) + 1
-		winner = {"user": top[0]["user"], "floor": top[0]["floor"], "top": top[0]["floor"] >= top_floor}
+		winner = {"user": top[0]["user"], "floor": top[0]["floor"], "top": top[0]["floor"] >= top_floor,
+				"likes": round_likes.get(uid, 0), "gifts": round_gifts.get(uid, 0),
+				"seconds": round_s - maxf(time_left_at_end, 0.0)}
 	out.append({"kind": "round_end", "winner": winner, "top": top, "hall": hall_of_fame()})
 
 
@@ -218,6 +227,8 @@ func _new_round(out: Array[Dictionary]) -> void:
 	time_left = round_s
 	hazard = {}
 	wings.clear()
+	round_likes.clear()
+	round_gifts.clear()
 	for uid in floor_of:
 		floor_of[uid] = 0.0
 		checkpoint[uid] = 0.0
