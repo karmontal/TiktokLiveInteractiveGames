@@ -441,6 +441,8 @@ func test_climb_summit_ends_round_and_counts_win() -> void:
 	check(c.floor_of["1"] == c.top_floor, "stops at the top")
 	var end: Dictionary = out[-1]
 	check(end["winner"]["user"]["id"] == "1" and end["winner"]["top"], "winner reached the top")
+	check(end["winner"]["likes"] >= 100 and end["winner"]["gifts"] == 0, "winner stats")
+	check(end["winner"]["seconds"] >= 0.0, "time to the top")
 	check(end["top"][1]["user"]["id"] == "2", "ranking second place")
 	check(c.wins["1"] == 1 and end["hall"][0]["wins"] == 1, "hall of fame")
 	check(c.handle({"type": "like", "user": u("2"), "count": 50}).is_empty(), "no climbing between rounds")
@@ -505,3 +507,83 @@ func test_climb_stream_end_resets_everything() -> void:
 	check(c.wins.has("1"), "won")
 	c.handle({"type": "stream_end"})
 	check(c.wins.is_empty() and c.floor_of.is_empty() and c.round_no == 1, "fresh stream")
+
+
+# ---------------------------------------------------------------- climb camera
+
+const CameraDirector := preload("res://games/climb/CameraDirector.gd")
+
+
+func director() -> CameraDirector:
+	var d := CameraDirector.new()
+	d.rng.seed = 3
+	return d
+
+
+func test_camera_ground_when_nobody_climbed() -> void:
+	var c := climb()
+	c.handle({"type": "join", "user": u("1")})
+	var d := director()
+	check(d.tick(0.1, c)["kind"] == "ground", "nothing to follow yet")
+
+
+func test_camera_mostly_on_leader_and_second() -> void:
+	var c := climb()
+	for i in 6:
+		c.handle({"type": "like", "user": u(str(i)), "count": 10 * (i + 1)})
+	var d := director()
+	var seen := {}
+	var shots := 0
+	for i in 4000:
+		var before = d.shot.duplicate()
+		var s := d.tick(0.5, c)
+		if before.is_empty() or s["left"] > before["left"]:
+			shots += 1
+			seen[s["kind"]] = seen.get(s["kind"], 0) + 1
+	var top2 := float(seen.get("leader", 0) + seen.get("second", 0)) / shots
+	check(top2 > 0.55 and top2 < 0.9, "leader + second get most shots (%.2f)" % top2)
+	check(seen.get("leader", 0) > seen.get("second", 0), "leader the most")
+	check(seen.get("climber", 0) > 0, "others get shots too")
+
+
+func test_camera_follows_the_climber_it_shows() -> void:
+	var c := climb()
+	c.handle({"type": "like", "user": u("1"), "count": 50})
+	var d := director()
+	var s := d.tick(0.1, c)
+	check(s["uid"] == "1" and is_equal_approx(s["floor"], c.floor_of["1"]), "on the only climber")
+	c.handle({"type": "like", "user": u("1"), "count": 50})
+	check(is_equal_approx(d.tick(0.1, c)["floor"], c.floor_of["1"]), "moves with them")
+
+
+func test_camera_join_interrupts_and_batches() -> void:
+	var c := climb()
+	c.handle({"type": "like", "user": u("1"), "count": 100})
+	var d := director()
+	d.tick(0.1, c)
+	c.handle({"type": "join", "user": u("new")})
+	d.joined(u("new"))
+	var s := d.tick(0.1, c)
+	check(s["kind"] == "join" and s["uid"] == "new" and s["floor"] == 0.0, "goes to the newcomer")
+	d.joined(u("a"))
+	d.joined(u("b"))
+	d.joined(u("b"))
+	check(d.tick(0.5, c)["kind"] == "join" and d.shot["users"].size() == 1, "others wait during the shot")
+	for i in 40:
+		s = d.tick(0.25, c)
+		if s["kind"] == "join" and s["users"].size() == 2:
+			break
+	check(s["kind"] == "join" and s["users"].size() == 2, "then one shot for the batch")
+
+
+func test_camera_hazard_wins_over_everything() -> void:
+	var c := climb()
+	c.handle({"type": "like", "user": u("1"), "count": 100})
+	var d := director()
+	d.tick(0.1, c)
+	d.hazard(10.0, 22.0, 2.5)
+	d.joined(u("new"))
+	var s := d.tick(1.0, c)
+	check(s["kind"] == "hazard" and s["floor"] == 16.0, "on the band, the join waits")
+	s = d.tick(2.8, c)
+	check(s["kind"] == "join", "join after the rocks land")
