@@ -199,7 +199,7 @@ func test_timeout_most_kos_wins_and_hall_of_fame() -> void:
 	check(kinds(out)[-1] == "round_end" and a.winner["user"]["id"] == "2", "most KOs among the standing")
 	check(a.wins["2"] == 1 and a.total_kos["2"] == 3, "stream totals")
 	check(a.hall_of_fame()[0]["user"]["id"] == "2", "hall of fame")
-	check(a.handle({"type": "like", "user": u("9"), "count": 3}).is_empty(), "no joining between rounds")
+	check(a.handle({"type": "like", "user": u("9"), "count": 5}).is_empty(), "no joining between rounds")
 	out = a.tick(a.result_s + 0.1)
 	check(kinds(out) == ["round_start"] and out[0]["fighters"] == 3, "next round brings everyone back")
 	check(a.phase == "lobby" and is_equal_approx(a.time_left, a.lobby_s), "starting with the lobby")
@@ -335,3 +335,31 @@ func test_everyone_falls_ends_the_round() -> void:
 	a.fighters["2"]["pos"] = Vector2(-a.radius() - 1.0, 0)
 	var out := a.tick(0.05)
 	check(kinds(out)[-1] == "round_end" and a.winner["user"]["id"] == "1" and not a.winner["survived"], "most KOs wins")
+
+
+func test_host_bots_open_every_round() -> void:
+	var a := ArenaLogic.new()
+	a.set_host("karmontal")
+	var out := a.start()
+	check(out[-1]["fighters"] == 3 and a.fighters.has("bot:1") and a.fighters["bot:3"]["user"]["name"] == "karmontal 3", "three named after the host")
+	check(kinds(a.tick(a.lobby_s + 0.1)) == ["fight_start"], "the fight starts with nobody else")
+	check(a.handle({"type": "gift", "user": {"id": "bot:1", "name": "x"}, "count": 1, "gift": {"tier": "large"}}).is_empty(), "viewers can't drive them")
+	a.handle({"type": "join", "user": u("1")})
+	a.fighters["bot:2"]["alive"] = false
+	a.fighters["bot:3"]["alive"] = false
+	a.fighters["1"]["alive"] = false
+	a.fighters["bot:1"]["kos"] = 2
+	a.tick(a.alone_s + 0.2)
+	check(a.phase == "result" and a.winner["user"]["id"] == "bot:1", "a bot can win the round")
+	check(a.wins.is_empty() and a.hall_of_fame().is_empty() and not a.total_kos.has("bot:1"), "but never the hall of fame")
+	a.tick(a.result_s + 0.1)
+	check(a.fighters.has("bot:1") and a.fighters.has("1") and a.fighters.size() == 4, "back next round with the viewers")
+
+
+func test_five_likes_drop_a_viewer_in() -> void:
+	var a := arena()
+	check(a.handle({"type": "like", "user": u("1"), "count": 2}).is_empty(), "two likes: not yet")
+	check(not a.players.has("1"), "not counted as a player either")
+	var out := a.handle({"type": "like", "user": u("1"), "count": 3})
+	check(kinds(out) == ["joined", "power"] and is_equal_approx(a.fighters["1"]["power"], 5 * a.like_power), "the fifth like drops in, with all five")
+	check(kinds(a.handle({"type": "comment", "user": u("2"), "text": "مرحبا"})) == ["joined"], "any comment drops in at once")
