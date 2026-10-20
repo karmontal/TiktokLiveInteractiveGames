@@ -106,7 +106,18 @@ func _ready() -> void:
 	EventBus.connection_changed.connect(_on_connection)
 	AvatarCache.avatar_ready.connect(_on_avatar)
 	_on_connection(EventBus.connected)
+	logic.set_host(_host_name())
 	_apply(logic.start())
+
+
+## The streamer's name for the house fighters: user arg --host=<name>, else env TIKTOK_USERNAME.
+func _host_name() -> String:
+	var host := OS.get_environment("TIKTOK_USERNAME")
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--host="):
+			host = arg.trim_prefix("--host=")
+	host = host.trim_prefix("@")
+	return host if host != "" and host != "mock" else "المضيف"
 
 
 func _process(delta: float) -> void:
@@ -1024,14 +1035,14 @@ func _update_banner() -> void:
 	var holding: bool = logic.phase == "fight" and logic.alone >= 0.0
 	_banner.visible = lobby or holding
 	if lobby:
-		var joined: int = logic.alive_ids().size()
+		var joined: int = logic.alive_ids().filter(func(uid): return not logic.is_bot(uid)).size()
 		if logic.time_left > 0.0:
 			_banner_title.text = "المعركة بتبلّش بعد"
 			_banner_big.text = str(ceili(logic.time_left))
 		else:
 			_banner_title.text = "بنستنى لاعب كمان"
 			_banner_big.text = "..."
-		_banner_sub.text = "علّق أي شي وانزل عالساحة! نزل %d لحد هلأ" % joined
+		_banner_sub.text = "علّق أو ابعت %d لايكات وانزل! نزل %d لحد هلأ" % [logic.join_likes, joined]
 		Ui.restyle(_banner, Color(0.02, 0.03, 0.08, 0.8), GOLD, 3)
 	elif holding:
 		var last: Array = logic.alive_ids()

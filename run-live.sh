@@ -101,7 +101,7 @@ SOURCE="tiktok @$USERNAME"
 sleep 2
 (
   export LIVEBRIDGE_TOKEN="$TOKEN"
-  keep_running game "$LOGS/game.log" "$GODOT" --path "$PROJECT" -- --game="$GAME" --pack="$PACK"
+  keep_running game "$LOGS/game.log" "$GODOT" --path "$PROJECT" -- --game="$GAME" --pack="$PACK" --host="$USERNAME"
 ) &
 
 if command -v caffeinate >/dev/null 2>&1; then

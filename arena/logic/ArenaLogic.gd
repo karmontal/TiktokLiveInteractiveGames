@@ -7,6 +7,7 @@ extends RefCounted
 ## Every minute the outer ring breaks away. The last one standing wins once they have been
 ## alone on the island for alone_s (a newcomer dropping in breaks it); at 5:00, the most KOs.
 ## Rounds loop by themselves: lobby (drop in, nobody fights) -> fight -> result -> lobby ...
+## Every round starts with the host's bots (set_host) so the island is never empty.
 
 # Round and island
 var lobby_s := 30.0                     # dropping in before the fight
@@ -18,6 +19,8 @@ var radii := [9.0, 7.5, 6.0, 4.5, 3.0]   # island radius after 0, 1, 2, 3, 4 col
 var collapse_every := 60.0
 var warn_s := 10.0
 var max_fighters := 40
+var bot_count := 3                      # house fighters named after the host, every round
+var join_likes := 5                     # likes it takes to drop in (any comment, follow, share or gift: at once)
 var recent_s := 600.0                   # who is brought back for the next round
 # Fighting
 var drop_s := 1.0                       # falling in from the sky, untouchable
@@ -63,6 +66,8 @@ var players := {}                       # uid -> user
 var last_seen := {}                     # uid -> clock
 var wins := {}                          # uid -> rounds won
 var total_kos := {}                     # uid -> KOs this stream
+var bots: Array[Dictionary] = []        # the host's fighters (users with "bot": true)
+var likes_waiting := {}                 # uid -> likes from viewers not in yet
 
 var _clock := 0.0
 
@@ -71,6 +76,17 @@ func start() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	_new_round(out)
 	return out
+
+
+## Names the house fighters after the host: "<host> 1", "<host> 2", ...
+func set_host(host: String) -> void:
+	bots.clear()
+	for i in bot_count:
+		bots.append({"id": "bot:%d" % (i + 1), "name": "%s %d" % [host, i + 1], "avatar": "", "bot": true})
+
+
+func is_bot(uid: String) -> bool:
+	return uid.begins_with("bot:")
 
 
 func radius() -> float:
@@ -131,6 +147,7 @@ func reset_stream() -> Array[Dictionary]:
 	last_seen.clear()
 	wins.clear()
 	total_kos.clear()
+	likes_waiting.clear()
 	fighters.clear()
 	round_no = 0
 	return start()
@@ -322,6 +339,15 @@ func handle(ev: Dictionary) -> Array[Dictionary]:
 	if not (user is Dictionary) or str(user.get("id", "")) == "":
 		return out
 	var uid := str(user["id"])
+	if is_bot(uid):
+		return out
+	if ev.get("type", "") == "like" and not fighters.has(uid) and not players.has(uid):
+		likes_waiting[uid] = likes_waiting.get(uid, 0) + int(ev.get("count", 0))
+		if likes_waiting[uid] < join_likes:
+			return out                   # a few more likes to drop in
+		ev = ev.duplicate()
+		ev["count"] = likes_waiting[uid]
+		likes_waiting.erase(uid)
 	players[uid] = user
 	last_seen[uid] = _clock
 	if phase == "result":
@@ -426,11 +452,13 @@ func _end_round(out: Array[Dictionary]) -> void:
 		if f["kos"] > b["kos"] or (f["kos"] == b["kos"] and f["damage"] < b["damage"]):
 			best = uid
 	for uid in fighters:
-		total_kos[uid] = total_kos.get(uid, 0) + fighters[uid]["kos"]
+		if not is_bot(uid):
+			total_kos[uid] = total_kos.get(uid, 0) + fighters[uid]["kos"]
 	winner = {}
 	if best != "" and (fighters.size() >= 2 or fighters[best]["kos"] > 0):
 		var w: Dictionary = fighters[best]
-		wins[best] = wins.get(best, 0) + 1
+		if not is_bot(best):
+			wins[best] = wins.get(best, 0) + 1
 		winner = {"user": w["user"], "kos": w["kos"], "gifts": w["gifts"], "survived": w["alive"],
 				"last_standing": alive.size() == 1}
 	out.append({"kind": "round_end", "winner": winner, "top": ranking(5), "hall": hall_of_fame()})
@@ -447,6 +475,8 @@ func _new_round(out: Array[Dictionary]) -> void:
 	var back := last_seen.keys().filter(func(uid): return _clock - last_seen[uid] <= recent_s)
 	back.sort_custom(func(a, b): return last_seen[a] > last_seen[b])     # most recent first
 	var spawned: Array[Dictionary] = []
-	for uid in back.slice(0, max_fighters):
+	for bot in bots:
+		_spawn(bot, spawned)
+	for uid in back.slice(0, max_fighters - bots.size()):
 		_spawn(players[uid], spawned)
 	out.append({"kind": "round_start", "round": round_no, "fighters": spawned.size(), "lobby": lobby_s})
