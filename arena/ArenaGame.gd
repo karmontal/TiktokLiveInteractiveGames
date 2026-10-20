@@ -374,7 +374,7 @@ func _update_views(delta: float) -> void:
 		var v: Dictionary = _views[uid]
 		var root: Node3D = v["root"]
 		if v["winner"]:
-			root.rotation.y += delta * 0.6
+			root.rotation.y = sin(_blink * 0.9) * 0.5      # sways, but keeps facing the camera
 			continue
 		if v["out"]:
 			v["out_t"] += delta
@@ -531,19 +531,19 @@ func _glow(color: Color) -> StandardMaterial3D:
 # ---------------------------------------------------------------- camera
 
 func _update_camera(delta: float) -> void:
+	if logic.phase == "result":
+		# Above the ground, aimed below the winner: they stand in the open top half of the screen.
+		var eye_r := Vector3(0, 2.3, 5.2)
+		_cam.transform = _cam.transform.interpolate_with(
+				Transform3D(Basis.looking_at(Vector3(0, -1.0, 0) - eye_r), eye_r), minf(1.0, delta * 4.0))
+		return
 	var focus := Vector3.ZERO
 	var dist := ArenaCamera.WIDE
 	var pitch := deg_to_rad(38.0)
-	if logic.phase == "result":
-		focus = Vector3(0, 1.0, 0)
-		dist = 5.0
-		pitch = deg_to_rad(10.0)
-		_cam_yaw = 0.0
-	elif not _shot.is_empty():
+	if not _shot.is_empty():
 		focus = Vector3(_shot["focus"].x, 0.8, _shot["focus"].y)
 		dist = _shot["distance"]
 		_cam_yaw += delta * (0.18 if _shot["kind"] == "wide" else 0.08)
-	_cam.v_offset = lerpf(_cam.v_offset, -2.4 if logic.phase == "result" else 0.0, minf(1.0, delta * 4.0))   # winner in the open top half
 	_cam_focus = _cam_focus.lerp(focus, minf(1.0, delta * 2.5))
 	_cam_dist = lerpf(_cam_dist, dist, minf(1.0, delta * 1.8))
 	var offset := Vector3(sin(_cam_yaw) * cos(pitch), sin(pitch), cos(_cam_yaw) * cos(pitch)) * _cam_dist
