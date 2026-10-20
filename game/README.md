@@ -1,6 +1,6 @@
 # ألعاب Godot
 
-مشروع Godot 4.5 (Compatibility renderer، 720×1280، 30fps). بيستقبل الأحداث من LiveBridge (`../bridge`) عبر WebSocket.
+مشروع Godot 4.5 (Compatibility renderer، 720×720 مربّع، 30fps). بيستقبل الأحداث من LiveBridge (`../bridge`) عبر WebSocket.
 
 ```
 game/
@@ -19,7 +19,7 @@ game/
 1. نزّل **Godot 4.5** (النسخة العادية، مش .NET) من godotengine.org.
 2. شغّل LiveBridge (شوف `../bridge/README.md`) بالتوكن `test`.
 3. افتح Godot ← Import ← اختار `game/project.godot` ← اضغط ▶ (أو F5).
-4. النافذة بتطلع صغيرة (450×800) عشان تزبط على الشاشة، بس اللعبة جوّاها 720×1280.
+4. الشاشة مربّعة (720×720) بكل الألعاب، عشان تنحط بالنص الفوقاني من بث TikTok وتضل التعليقات تحتها. التعليمات صارت فوق.
 5. بـ LIVE Studio ضيف مصدر **Window Capture** واختار نافذة اللعبة.
 
 **اختيار اللعبة:** `--game=quiz` أو `--game=tug_of_war` أو `--game=climb` (بعد `--`)، أو متغيّر البيئة `LIVE_GAME=quiz`.

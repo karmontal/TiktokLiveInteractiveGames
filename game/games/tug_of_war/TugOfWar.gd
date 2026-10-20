@@ -1,16 +1,16 @@
 extends Node2D
-## Tug of war screen (720x1280). Rules live in TugLogic.gd; this file only draws.
+## Tug of war screen (720x720, square so TikTok's comments sit under it). Rules live in TugLogic.gd; this file only draws.
 ## Team A is on the right (read first in Arabic), team B on the left.
 
 const TugLogic := preload("res://games/tug_of_war/TugLogic.gd")
 
 const W := 720.0
-const H := 1280.0
+const H := 720.0
 const ROUND_S := 180.0
 const RESULT_S := 8.0
 const RANGE := 280.0          # px from the center to a win line
-const ROPE_Y := 560.0
-const MAX_SHOWN := 16         # avatars shown per team
+const ROPE_Y := 330.0
+const MAX_SHOWN := 15         # avatars shown per team
 const FEED_LINES := 3
 const TEAM_COLORS := [Color("#3b82f6"), Color("#ef4444")]
 const TEAM_NAME_PAIRS := [["قطط", "كلاب"], ["شاي", "قهوة"], ["صيف", "شتا"], ["بحر", "جبل"]]
@@ -218,24 +218,24 @@ func _remove_chip(uid: String, team: int) -> void:
 func _layout(team: int) -> void:
 	for i in _order[team].size():
 		var chip: Control = _chips[team][_order[team][i]]
-		chip.position = Vector2((i % 4) * 82, (i / 4) * 92)
+		chip.position = Vector2((i % 5) * 66, (i / 5) * 76)
 
 
 func _make_chip(user: Dictionary, team: int) -> Control:
 	var chip := Control.new()
-	chip.size = Vector2(80, 90)
+	chip.size = Vector2(64, 74)
 	var avatar := TextureRect.new()
 	avatar.name = "Avatar"
-	avatar.position = Vector2(8, 0)
-	avatar.size = Vector2(64, 64)
+	avatar.position = Vector2(7, 0)
+	avatar.size = Vector2(50, 50)
 	avatar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	var tex := AvatarCache.get_avatar(str(user["id"]), str(user.get("avatar", "")))
 	avatar.texture = tex if tex else AvatarCache.placeholder(TEAM_COLORS[team])
 	chip.add_child(avatar)
-	var initial := _label(_user_name(user).left(1).to_upper(), 30, Vector2(8, 4), 64, Color.WHITE, true, chip)
+	var initial := _label(_user_name(user).left(1).to_upper(), 24, Vector2(7, 2), 50, Color.WHITE, true, chip)
 	initial.name = "Initial"
 	initial.visible = tex == null
-	var nm := _label(_user_name(user), 15, Vector2(0, 62), 80, Color.WHITE, false, chip)
+	var nm := _label(_user_name(user), 13, Vector2(0, 48), 64, Color.WHITE, false, chip)
 	nm.clip_text = true
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	return chip
@@ -252,7 +252,7 @@ func _flash_chip(uid: String, team: int) -> void:
 # ---------------------------------------------------------------- feed & popup
 
 func _say(text: String, team: int) -> void:
-	var line := _label(text, 24, Vector2.ZERO, W - 40, TEAM_COLORS[team].lightened(0.45), false, _feed)
+	var line := _label(text, 19, Vector2.ZERO, W - 40, TEAM_COLORS[team].lightened(0.45), false, _feed)
 	line.clip_text = true
 	line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	while _feed.get_child_count() > FEED_LINES:
@@ -330,55 +330,54 @@ func _build_ui() -> void:
 	_rect(Color(TEAM_COLORS[TugLogic.A], 0.10), Vector2(W / 2, 0), Vector2(W / 2, H))
 	_rect(Color(TEAM_COLORS[TugLogic.B], 0.10), Vector2.ZERO, Vector2(W / 2, H))
 
-	_label("شدّ الحبل", 64, Vector2(0, 24), W, Color("#ffd23f"), true)
-	_label("اكتب A أو B وانضم لفريقك", 30, Vector2(0, 120), W, Color(1, 1, 1, 0.8))
+	_label("شدّ الحبل", 44, Vector2(0, -4), W, Color("#ffd23f"), true)
+	# How to play, at the top: TikTok's comments cover the bottom of the stream.
+	_rect(Color(0, 0, 0, 0.5), Vector2(0, 66), Vector2(W, 80))
+	var help := _label("اكتب A أو B وانضم لفريقك\nلايك = شدّة  •  فولو = شدّة قوية  •  شير = قوة ضعفين  •  هدية = شدّة كبيرة",
+			20, Vector2(0, 68), W, Color.WHITE, true)
+	help.size.y = 76
 
 	for t in 2:
 		var x := W / 2 + 10 if t == TugLogic.A else 20.0
-		_rect(Color(TEAM_COLORS[t], 0.35), Vector2(x, 190), Vector2(330, 130))
-		_name_labels.append(_label("", 40, Vector2(x, 196), 330, Color.WHITE, true))
-		_count_labels.append(_label("0 لاعب", 24, Vector2(x, 262), 330, Color(1, 1, 1, 0.8)))
-		var boost := _label("×2", 30, Vector2(x + 250, 186), 80, Color("#ffd23f"), true)
+		_rect(Color(TEAM_COLORS[t], 0.35), Vector2(x, 154), Vector2(330, 80))
+		_name_labels.append(_label("", 30, Vector2(x, 150), 330, Color.WHITE, true))
+		_count_labels.append(_label("0 لاعب", 19, Vector2(x, 196), 330, Color(1, 1, 1, 0.8)))
+		var boost := _label("×2", 26, Vector2(x + 254, 150), 76, Color("#ffd23f"), true)
 		boost.visible = false
 		_boost_labels.append(boost)
 
-	_timer_label = _label("", 40, Vector2(0, 340), W, Color.WHITE, true)
+	_timer_label = _label("", 30, Vector2(0, 234), W, Color.WHITE, true)
 
 	var rope := Line2D.new()
 	rope.points = PackedVector2Array([Vector2(10, ROPE_Y), Vector2(W - 10, ROPE_Y)])
 	rope.width = 14
 	rope.default_color = Color("#c8a46b")
 	_ui.add_child(rope)
-	_rect(Color(1, 1, 1, 0.6), Vector2(W / 2 - 2, ROPE_Y - 50), Vector2(4, 100))
+	_rect(Color(1, 1, 1, 0.6), Vector2(W / 2 - 2, ROPE_Y - 44), Vector2(4, 88))
 	for t in 2:
 		var line_x := W / 2 + (-RANGE if t == TugLogic.B else RANGE)
-		_rect(TEAM_COLORS[t], Vector2(line_x - 4, ROPE_Y - 70), Vector2(8, 140))
-	_knot = _rect(Color("#ffd23f"), Vector2(W / 2 - 14, ROPE_Y - 40), Vector2(28, 80))
+		_rect(TEAM_COLORS[t], Vector2(line_x - 4, ROPE_Y - 56), Vector2(8, 112))
+	_knot = _rect(Color("#ffd23f"), Vector2(W / 2 - 14, ROPE_Y - 36), Vector2(28, 72))
 
 	for t in 2:
 		var gx := W / 2 + 10 if t == TugLogic.A else 22.0
 		var group := Control.new()
-		group.position = Vector2(gx, 640)
-		group.size = Vector2(330, 370)
+		group.position = Vector2(gx, 398)
+		group.size = Vector2(330, 228)
 		_ui.add_child(group)
 		_groups.append(group)
 		_group_x.append(gx)
 
 	_feed = VBoxContainer.new()
-	_feed.position = Vector2(20, 1012)
-	_feed.size = Vector2(W - 40, 150)
-	_feed.add_theme_constant_override("separation", 0)
+	_feed.position = Vector2(20, 620)
+	_feed.size = Vector2(W - 40, 92)
+	_feed.add_theme_constant_override("separation", -4)
 	_ui.add_child(_feed)
 
-	_rect(Color(0, 0, 0, 0.55), Vector2(0, H - 110), Vector2(W, 110))
-	var help := _label("لايك = شدّة  •  فولو = شدّة قوية\nشير = قوة ×2 لـ 5 ثواني  •  هدية = شدّة كبيرة",
-			24, Vector2(0, H - 102), W, Color(1, 1, 1, 0.9))
-	help.size.y = 96
-
-	_popup = _label("", 52, Vector2(0, 380), W, Color.WHITE, true)
-	_popup.size.y = 200
-	_popup.pivot_offset = Vector2(W / 2, 100)
-	_popup.add_theme_constant_override("outline_size", 18)
+	_popup = _label("", 46, Vector2(0, 250), W, Color.WHITE, true)
+	_popup.size.y = 170
+	_popup.pivot_offset = Vector2(W / 2, 85)
+	_popup.add_theme_constant_override("outline_size", 16)
 	_popup.visible = false
 
 	_result = Control.new()
@@ -386,9 +385,9 @@ func _build_ui() -> void:
 	_result.visible = false
 	_ui.add_child(_result)
 	_rect(Color(0, 0, 0, 0.8), Vector2.ZERO, Vector2(W, H), _result)
-	_result_title = _label("", 72, Vector2(0, 430), W, Color.WHITE, true, _result)
-	_result_body = _label("", 34, Vector2(0, 560), W, Color.WHITE, false, _result)
-	_result_body.size.y = 300
+	_result_title = _label("", 64, Vector2(0, 180), W, Color.WHITE, true, _result)
+	_result_body = _label("", 30, Vector2(0, 310), W, Color.WHITE, false, _result)
+	_result_body.size.y = 260
 
 	_status = _label("", 18, Vector2(12, 4), 160, Color.WHITE, false)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT

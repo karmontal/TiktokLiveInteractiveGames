@@ -1,8 +1,8 @@
 extends RefCounted
-## Shared drawing helpers: 720x1280 portrait, Cairo font, right-to-left text, the house colors.
+## Shared drawing helpers: 720x720 square, Cairo font, right-to-left text, the house colors.
 
 const W := 720.0
-const H := 1280.0
+const H := 720.0
 const FONT_PATH := "res://assets/fonts/Cairo.ttf"
 
 const BG := Color("#0f0b24")
