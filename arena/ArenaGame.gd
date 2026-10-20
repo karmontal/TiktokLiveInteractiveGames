@@ -535,10 +535,11 @@ func _update_camera(delta: float) -> void:
 	var dist := ArenaCamera.WIDE
 	var pitch := deg_to_rad(38.0)
 	if logic.phase == "result":
-		focus = Vector3(0, -0.9, 0)          # look below the winner so they stand in the open top half
-		dist = 4.2
-		pitch = deg_to_rad(8.0)
+		focus = Vector3(0, 1.0, 0)
+		dist = 5.0
+		pitch = deg_to_rad(10.0)
 		_cam_yaw = 0.0
+	_cam.v_offset = lerpf(_cam.v_offset, -2.4 if logic.phase == "result" else 0.0, minf(1.0, delta * 4.0))   # winner in the open top half
 	elif not _shot.is_empty():
 		focus = Vector3(_shot["focus"].x, 0.8, _shot["focus"].y)
 		dist = _shot["distance"]
@@ -608,10 +609,13 @@ func _apply_theme(id: String) -> void:
 		var inner: float = radii[k + 1] if k + 1 < radii.size() else 0.0
 		var depth := 1.2 + (radii.size() - 1 - k) * 0.9
 		var top := _flat(Color(th["top"]))
+		var side := _flat(Color(th["side"]))
+		top.cull_mode = BaseMaterial3D.CULL_DISABLED
+		side.cull_mode = BaseMaterial3D.CULL_DISABLED
 		var ring := MeshInstance3D.new()
 		ring.mesh = _ring_mesh(inner, outer, depth)
 		ring.set_surface_override_material(0, top)
-		ring.set_surface_override_material(1, _flat(Color(th["side"])))
+		ring.set_surface_override_material(1, side)
 		_scenery.add_child(ring)
 		_rings.append(ring)
 		_ring_tops.append(top)
