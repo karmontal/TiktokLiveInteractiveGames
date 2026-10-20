@@ -539,11 +539,11 @@ func _update_camera(delta: float) -> void:
 		dist = 5.0
 		pitch = deg_to_rad(10.0)
 		_cam_yaw = 0.0
-	_cam.v_offset = lerpf(_cam.v_offset, -2.4 if logic.phase == "result" else 0.0, minf(1.0, delta * 4.0))   # winner in the open top half
 	elif not _shot.is_empty():
 		focus = Vector3(_shot["focus"].x, 0.8, _shot["focus"].y)
 		dist = _shot["distance"]
 		_cam_yaw += delta * (0.18 if _shot["kind"] == "wide" else 0.08)
+	_cam.v_offset = lerpf(_cam.v_offset, -2.4 if logic.phase == "result" else 0.0, minf(1.0, delta * 4.0))   # winner in the open top half
 	_cam_focus = _cam_focus.lerp(focus, minf(1.0, delta * 2.5))
 	_cam_dist = lerpf(_cam_dist, dist, minf(1.0, delta * 1.8))
 	var offset := Vector3(sin(_cam_yaw) * cos(pitch), sin(pitch), cos(_cam_yaw) * cos(pitch)) * _cam_dist
