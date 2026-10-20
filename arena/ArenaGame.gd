@@ -258,6 +258,7 @@ func _show_result(fx: Dictionary) -> void:
 		v["shield"].visible = false
 		v["hammer"].visible = false
 		v["dmg"].text = ""
+		v["power"].text = ""
 		v["label"].visible = false
 		v["ap"].play("cheer")
 	var top: Array = fx["top"]
@@ -324,8 +325,11 @@ func _add_view(user: Dictionary, drop: bool) -> void:
 
 	var label := _label3d(_name(user), 40, Vector3(0, 2.45, 0))
 	root.add_child(label)
-	var dmg := _label3d("", 34, Vector3(0, 2.2, 0))
+	var dmg := _label3d("", 34, Vector3(0, 2.2, 0))       # damage taken: the higher, the farther they fly
 	root.add_child(dmg)
+	var power := _label3d("", 34, Vector3(0, 2.72, 0))      # like power: how much harder they hit
+	power.modulate = GOLD
+	root.add_child(power)
 
 	var shield := MeshInstance3D.new()
 	var sphere := SphereMesh.new()
@@ -345,7 +349,7 @@ func _add_view(user: Dictionary, drop: bool) -> void:
 	hand.add_child(hammer)
 	hammer.visible = false
 
-	_views[uid] = {"root": root, "ap": ap, "suit": suit, "face": face, "label": label, "dmg": dmg,
+	_views[uid] = {"root": root, "ap": ap, "suit": suit, "face": face, "label": label, "dmg": dmg, "power": power,
 			"shield": shield, "hammer": hammer, "lock": 0.0, "last": Vector2.INF, "out": false,
 			"out_vel": Vector3.ZERO, "out_t": 0.0, "winner": false}
 	ap.play("fall" if drop else "idle")
@@ -428,6 +432,8 @@ func _update_views(delta: float) -> void:
 		var d: int = roundi(f["damage"])
 		v["dmg"].text = "%d%%" % d if d > 0 else ""
 		v["dmg"].modulate = Color.WHITE.lerp(Color("#ff4d4d"), clampf(d / 120.0, 0.0, 1.0))
+		var p: int = roundi(f["power"] * 100.0)
+		v["power"].text = "قوة +%d%%" % p if p >= 5 else ""
 		v["lock"] = maxf(0.0, v["lock"] - delta)
 		var moved: float = pos.distance_to(v["last"]) / maxf(delta, 0.001) if v["last"] != Vector2.INF else 0.0
 		v["last"] = pos
@@ -475,6 +481,7 @@ func _ko(fx: Dictionary) -> void:
 	v["out_vel"] = Vector3(push.x, 6.0, push.y)
 	v["ap"].play("fall")
 	v["dmg"].text = ""
+	v["power"].text = ""
 	_burst(v["root"].position + Vector3(0, 2.8, 0), "خارج!", Color("#ff5c5c"))
 
 

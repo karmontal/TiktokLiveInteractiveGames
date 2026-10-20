@@ -89,7 +89,7 @@ func test_likes_add_power_and_it_fades() -> void:
 	check(is_equal_approx(a.fighters["1"]["power"], a.max_power), "capped")
 	var out: Array[Dictionary] = []
 	a._punch(a.fighters["1"], a.fighters["2"], 1.0, out)
-	check(is_equal_approx(out[0]["push"], (a.knock_base + a.punch_damage * a.knock_per_damage) * 2.0), "double knockback")
+	check(is_equal_approx(out[0]["push"], (a.knock_base + a.punch_damage * a.knock_per_damage) * (1.0 + a.max_power)), "full charge knockback")
 	a.fighters["1"]["pos"] = Vector2(-5, 0)
 	a.tick(3.0)
 	check(a.fighters["1"]["power"] < a.max_power, "power fades")
@@ -363,3 +363,21 @@ func test_five_likes_drop_a_viewer_in() -> void:
 	var out := a.handle({"type": "like", "user": u("1"), "count": 3})
 	check(kinds(out) == ["joined", "power"] and is_equal_approx(a.fighters["1"]["power"], 5 * a.like_power), "the fifth like drops in, with all five")
 	check(kinds(a.handle({"type": "comment", "user": u("2"), "text": "مرحبا"})) == ["joined"], "any comment drops in at once")
+
+
+func test_bots_hit_soft_and_fly_far() -> void:
+	var a := ArenaLogic.new()
+	a.rng.seed = 3
+	a.set_host("host")
+	a.start()
+	a.begin_fight()
+	a.handle({"type": "comment", "text": "يلا", "user": u("1")})
+	var me: Dictionary = a.fighters["1"]
+	var bot: Dictionary = a.fighters["bot:1"]
+	var out: Array[Dictionary] = []
+	a._punch(me, bot, 1.0, out)
+	a._punch(bot, me, 1.0, out)
+	check(out[0]["push"] > out[1]["push"] * 2.5, "a viewer knocks a bot much farther than the other way")
+	check(me["damage"] < bot["damage"], "and takes less damage")
+	a.handle({"type": "like", "user": {"id": "bot:1", "name": "x"}, "count": 50})
+	check(bot["power"] == 0.0, "bots never power up")
