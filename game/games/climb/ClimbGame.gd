@@ -510,9 +510,9 @@ func _make_climber(parent: Control, user: Dictionary) -> Dictionary:
 	crown.draw.connect(_draw_crown.bind(crown))
 	crown.visible = false
 	var name := _name(user)
-	var width := minf(100.0, Ui.font(700).get_string_size(name, LEFT, -1, 12).x + 18.0)
-	var pill := Ui.panel(node, Color(0, 0, 0, 0.65), Vector2(38 - width / 2.0, 108), Vector2(width, 18), 9)
-	Ui.label(pill, name, 12, Vector2(0, -2), width, Color.WHITE, 700, CENTER, 22)
+	var width := minf(124.0, Ui.font(800).get_string_size(name, LEFT, -1, 16).x + 18.0)
+	var pill := Ui.panel(node, Color(0, 0, 0, 0.7), Vector2(38 - width / 2.0, 106), Vector2(width, 23), 11)
+	Ui.label(pill, name, 16, Vector2(0, -2), width, Color.WHITE, 800, CENTER, 27)
 	return {"node": node, "holder": holder, "crown": crown, "pill": pill, "shown": 0.0, "hop": 0.0,
 			"slot": absi(hash(uid)) % SLOTS, "colors": colors}
 
@@ -705,10 +705,10 @@ func _icon(parent: Control, kind: String, pos: Vector2, size: float, color: Colo
 
 func _say(text: String, color: Color, icon: String) -> void:
 	var line := Control.new()
-	line.custom_minimum_size = Vector2(W - 40, 36)
+	line.custom_minimum_size = Vector2(W - 32, 36)
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_icon(line, icon, Vector2(W - 64, 7), 22, color)
-	Ui.label(line, text, 20, Vector2(0, 0), W - 76, color, 700, RIGHT, 36)
+	_icon(line, icon, Vector2(W - 58, 7), 22, color)
+	Ui.label(line, text, 21, Vector2(0, 0), W - 66, color, 800, RIGHT, 36)
 	_feed.add_child(line)
 	while _feed.get_child_count() > FEED_LINES:
 		var first := _feed.get_child(0)
@@ -846,19 +846,19 @@ func _build_world() -> void:
 	_fx = _canvas(_world, Vector2.ZERO, _world.size, Callable())
 	_band_pill = Ui.panel(_world, Color("#5a1414"), Vector2(250, 0), Vector2(340, 44), 22, DANGER, 2)
 	_icon(_band_pill, "warn", Vector2(290, 11), 22, Color("#ffd0d0"))
-	_band_text = Ui.label(_band_pill, "", 20, Vector2(14, 0), 270, Color("#ffd0d0"), 800, CENTER, 44)
+	_band_text = Ui.label(_band_pill, "", 21, Vector2(14, 0), 270, Color("#ffd0d0"), 900, CENTER, 44)
 	_band_pill.visible = false
-	_caption = Ui.panel(_ui, Color(0.02, 0.03, 0.08, 0.78), Vector2(140, VIEW_Y + 8), Vector2(330, 38), 19, GOLD, 2)
-	_caption_text = Ui.label(_caption, "", 17, Vector2(10, 0), 310, Color.WHITE, 800, CENTER, 38)
+	_caption = Ui.panel(_ui, Color(0.02, 0.03, 0.08, 0.8), Vector2(104, VIEW_Y + 8), Vector2(380, 42), 21, GOLD, 2)
+	_caption_text = Ui.label(_caption, "", 21, Vector2(10, 0), 360, Color.WHITE, 900, CENTER, 42)
 	_caption.visible = false
-	_zone_badge = Ui.panel(_ui, Color(0.02, 0.03, 0.08, 0.72), Vector2(W - 210, VIEW_Y + 10), Vector2(190, 34), 17)
-	_zone_dot = Ui.rect(_zone_badge, Color.WHITE, Vector2(164, 11), Vector2(12, 12))
-	_zone_text = Ui.label(_zone_badge, "", 16, Vector2(10, 0), 146, Color("#d7dee6"), 800, RIGHT, 34)
+	_zone_badge = Ui.panel(_ui, Color(0.02, 0.03, 0.08, 0.72), Vector2(W - 224, VIEW_Y + 10), Vector2(212, 38), 19)
+	_zone_dot = Ui.rect(_zone_badge, Color.WHITE, Vector2(186, 13), Vector2(12, 12))
+	_zone_text = Ui.label(_zone_badge, "", 18, Vector2(8, 0), 172, Color("#d7dee6"), 900, RIGHT, 38)
 
 
 func _build_map() -> void:
 	Ui.panel(_ui, Color(0.02, 0.04, 0.09, 0.72), MAP_POS, MAP_SIZE, 16, Color(1, 1, 1, 0.22), 2)
-	Ui.label(_ui, "الخريطة", 14, MAP_POS, MAP_SIZE.x, Color("#cfd8e3"), 800, CENTER, 26)
+	Ui.label(_ui, "الخريطة", 15, MAP_POS, MAP_SIZE.x, Color("#cfd8e3"), 900, CENTER, 26)
 	_map = _canvas(_ui, MAP_POS, MAP_SIZE, _draw_map)
 
 
@@ -867,48 +867,50 @@ func _build_header() -> void:
 	head.draw.connect(func(): head.draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(W, 0), Vector2(W, VIEW_Y),
 			Vector2(0, VIEW_Y)]), PackedColorArray([Color(0.02, 0.03, 0.08, 0.92), Color(0.02, 0.03, 0.08, 0.92),
 			Color(0.02, 0.03, 0.08, 0.55), Color(0.02, 0.03, 0.08, 0.55)])))
-	_icon(_ui, "mountain", Vector2(470, 12), 32, GOLD)
-	Ui.label(_ui, "تسلّق البرج", 34, Vector2(210, 0), 256, GOLD, 900, CENTER, 56)
+	_icon(_ui, "mountain", Vector2(474, 10), 34, GOLD)
+	Ui.label(_ui, "تسلّق البرج", 36, Vector2(206, -2), 264, GOLD, 900, CENTER, 56)
 	_status = Ui.label(_ui, "", 11, Vector2(W - 120, -2), 112, Color.WHITE, 500, RIGHT, 16)
-	_count = Ui.label(_ui, "0 متسلّق", 17, Vector2(W - 170, 14), 156, Color("#cfd8e3"), 700, RIGHT, 32)
-	var pill := Ui.panel(_ui, Color(1, 1, 1, 0.1), Vector2(14, 10), Vector2(106, 36), 18)
-	_icon(pill, "clock", Vector2(12, 8), 20, Color.WHITE)
-	_timer = Ui.label(pill, "", 21, Vector2(36, 0), 62, Color.WHITE, 800, LEFT, 36)
+	_count = Ui.label(_ui, "0 متسلّق", 22, Vector2(W - 180, 12), 166, Color.WHITE, 900, RIGHT, 36)
+	var pill := Ui.panel(_ui, Color(1, 1, 1, 0.12), Vector2(12, 8), Vector2(124, 42), 21)
+	_icon(pill, "clock", Vector2(12, 10), 22, Color.WHITE)
+	_timer = Ui.label(pill, "", 26, Vector2(40, 0), 78, Color.WHITE, 900, LEFT, 42)
 	_timer.text_direction = Control.TEXT_DIRECTION_LTR
 
-	# What each interaction does, at the top: TikTok's comments cover the bottom of the stream.
-	Ui.panel(_ui, Color(0.02, 0.03, 0.08, 0.9), Vector2(6, 56), Vector2(W - 12, 92), 18, Color(1, 1, 1, 0.14), 1)
-	var col_w := (W - 16) / HELP.size()
+	# What each interaction does, at the top and large: TikTok's comments cover the bottom,
+	# and the stream shrinks this screen onto a phone.
+	Ui.panel(_ui, Color(0.02, 0.03, 0.08, 0.9), Vector2(6, 56), Vector2(W - 12, 92), 16, Color(1, 1, 1, 0.14), 1)
 	for i in HELP.size():
 		var h: Array = HELP[i]
-		var x := W - 8 - col_w * (i + 1)             # first item on the right
+		var per_row := 3 if i < 3 else HELP.size() - 3   # the second row's cells share the full width
+		var cell_w := (W - 24) / per_row
+		var x := W - 12 - cell_w * (i % 3 + 1)          # first item on the right
+		var y := 60.0 + (i / 3) * 44.0
 		var color := Color(h[3])
-		var box := Ui.panel(_ui, Color(color, 0.18), Vector2(x + col_w / 2 - 21, 61), Vector2(42, 42), 14)
-		_icon(box, h[2], Vector2(9, 9), 24, color)
-		Ui.label(_ui, h[0], 16, Vector2(x - 4, 101), col_w + 8, Color.WHITE, 900, CENTER, 24)
-		Ui.label(_ui, h[1], 15, Vector2(x - 4, 122), col_w + 8, color.lightened(0.25), 700, CENTER, 22)
+		var cell := Ui.panel(_ui, Color(color, 0.16), Vector2(x + 2, y), Vector2(cell_w - 4, 40), 12)
+		_icon(cell, h[2], Vector2(cell_w - 38, 7), 26, color)
+		Ui.label(cell, "%s: %s" % [h[0], h[1]], 19, Vector2(6, 0), cell_w - 50, Color.WHITE, 800, RIGHT, 40)
 
 	for i in 3:
 		var x := W - 12.0 - 232.0 * (i + 1) + 8.0     # first place on the right
-		var box := Ui.panel(_ui, Color(0.02, 0.03, 0.08, 0.6), Vector2(x, 153), Vector2(224, 48), 24, Ui.MEDALS[i], 2)
-		var badge := Ui.panel(box, Ui.MEDALS[i], Vector2(8, 11), Vector2(26, 26), 13)
-		Ui.label(badge, str(i + 1), 15, Vector2.ZERO, 26, Color("#1a1300"), 900, CENTER, 26)
-		var holder := Ui.avatar(box, Vector2(178, 5), 38, Ui.MEDALS[i], 3)
-		var nm := Ui.label(box, "", 16, Vector2(40, 1), 132, Color.WHITE, 800, RIGHT, 24)
-		var fl := Ui.label(box, "", 13, Vector2(40, 23), 132, Ui.MEDALS[i], 700, RIGHT, 22)
+		var box := Ui.panel(_ui, Color(0.02, 0.03, 0.08, 0.65), Vector2(x, 153), Vector2(224, 50), 25, Ui.MEDALS[i], 2)
+		var badge := Ui.panel(box, Ui.MEDALS[i], Vector2(7, 12), Vector2(26, 26), 13)
+		Ui.label(badge, str(i + 1), 16, Vector2.ZERO, 26, Color("#1a1300"), 900, CENTER, 26)
+		var holder := Ui.avatar(box, Vector2(178, 5), 40, Ui.MEDALS[i], 3)
+		var nm := Ui.label(box, "", 19, Vector2(36, -1), 138, Color.WHITE, 800, RIGHT, 28)
+		var fl := Ui.label(box, "", 16, Vector2(36, 24), 138, Ui.MEDALS[i], 800, RIGHT, 24)
 		_leaders.append({"box": box, "holder": holder, "name": nm, "floor": fl})
 
 
 func _build_bottom() -> void:
 	_feed = VBoxContainer.new()
-	_feed.position = Vector2(20, H - 100)
-	_feed.size = Vector2(W - 40, 96)
+	_feed.position = Vector2(16, H - 112)
+	_feed.size = Vector2(W - 32, 108)
 	_feed.add_theme_constant_override("separation", 0)
 	_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(_feed)
 	_popup = Ui.panel(_ui, Color("#3b1d4a"), Vector2(80, 280), Vector2(560, 150), 24, GOLD, 4)
 	_popup.pivot_offset = Vector2(280, 75)
-	_popup_text = Ui.paragraph(_popup, "", 30, Vector2(14, 6), Vector2(532, 138), GOLD, 800)
+	_popup_text = Ui.paragraph(_popup, "", 34, Vector2(14, 6), Vector2(532, 138), GOLD, 800)
 	_popup.visible = false
 
 
@@ -928,8 +930,8 @@ func _build_result() -> void:
 		var piece := Ui.rect(_result, colors[i % colors.size()], Vector2(-50, -50), Vector2(9, 16))
 		piece.pivot_offset = Vector2(4.5, 8)
 		_confetti.append(piece)
-	_res_round = Ui.label(_result, "", 18, Vector2(0, 6), W, Color("#b9b3ff"), 800, CENTER, 30)
-	_res_title = Ui.label(_result, "", 44, Vector2(0, 28), W, GOLD, 900, CENTER, 66)
+	_res_round = Ui.label(_result, "", 21, Vector2(0, 4), W, Color("#b9b3ff"), 800, CENTER, 32)
+	_res_title = Ui.label(_result, "", 48, Vector2(0, 28), W, GOLD, 900, CENTER, 68)
 
 	_res_stage = Ui.layer(_result)
 	var glow := GradientTexture2D.new()
@@ -953,7 +955,7 @@ func _build_result() -> void:
 		flag.draw_colored_polygon(_shape(STAR, Vector2(22, 14), 1.6), Color("#7a5a00")))
 	Ui.rect(_res_stage, Color("#ffe68a"), Vector2(170, 292), Vector2(380, 10))
 	var plat := Ui.rect(_res_stage, Color("#c79a10"), Vector2(170, 302), Vector2(380, 24))
-	_res_platform = Ui.label(plat, "", 14, Vector2.ZERO, 380, Color("#3a2a00"), 900, CENTER, 24)
+	_res_platform = Ui.label(plat, "", 18, Vector2(0, -2), 380, Color("#3a2a00"), 900, CENTER, 28)
 	_res_climber = _make_climber(_res_stage, {"id": "", "name": ""})
 	var champ: Control = _res_climber["node"]
 	champ.set_meta("cheer", true)
@@ -962,30 +964,30 @@ func _build_result() -> void:
 	_res_climber["pill"].visible = false
 	_res_climber["crown"].visible = true
 
-	_res_name = Ui.label(_result, "", 34, Vector2(0, 326), W, Color.WHITE, 900, CENTER, 46)
-	_res_stats = Ui.label(_result, "", 17, Vector2(0, 370), W, Color("#cfc9ff"), 700, CENTER, 28)
+	_res_name = Ui.label(_result, "", 38, Vector2(0, 324), W, Color.WHITE, 900, CENTER, 50)
+	_res_stats = Ui.label(_result, "", 20, Vector2(0, 370), W, Color("#cfc9ff"), 800, CENTER, 32)
 
 	# Round order on the right, the stream's champions on the left.
-	Ui.label(_result, "ترتيب الجولة", 19, Vector2(372, 404), 336, GOLD, 900, RIGHT, 32)
+	Ui.label(_result, "ترتيب الجولة", 22, Vector2(372, 402), 336, GOLD, 900, RIGHT, 36)
 	for i in 4:
 		var box := Ui.panel(_result, Color(1, 1, 1, 0.07), Vector2(372, 440 + i * 50), Vector2(336, 44), 14)
-		Ui.label(box, str(i + 2), 17, Vector2(306, 0), 26, Color("#cfc9ff"), 900, CENTER, 44)
+		Ui.label(box, str(i + 2), 20, Vector2(306, 0), 26, Color("#cfc9ff"), 900, CENTER, 44)
 		var holder := Ui.avatar(box, Vector2(270, 6), 32, Color.WHITE, 2)
-		var nm := Ui.label(box, "", 16, Vector2(150, 0), 114, Color.WHITE, 800, RIGHT, 44)
-		var track := Ui.rect(box, Color(1, 1, 1, 0.12), Vector2(72, 18), Vector2(72, 8))
-		var fill := Ui.rect(track, Color.WHITE, Vector2.ZERO, Vector2(0, 8))
-		var fl := Ui.label(box, "", 14, Vector2(8, 0), 62, Color("#cfc9ff"), 800, LEFT, 44)
+		var nm := Ui.label(box, "", 20, Vector2(110, 0), 154, Color.WHITE, 800, RIGHT, 44)
+		var track := Ui.rect(box, Color(1, 1, 1, 0.12), Vector2(8, 38), Vector2(96, 4))
+		var fill := Ui.rect(track, Color.WHITE, Vector2.ZERO, Vector2(0, 4))
+		var fl := Ui.label(box, "", 17, Vector2(8, -2), 96, Color("#cfc9ff"), 900, LEFT, 40)
 		_res_rows.append({"box": box, "holder": holder, "name": nm, "track": track, "fill": fill, "floor": fl})
 
-	Ui.label(_result, "لوحة الأبطال · البث كله", 19, Vector2(12, 404), 336, GOLD, 900, RIGHT, 32)
+	Ui.label(_result, "لوحة الأبطال · البث كله", 22, Vector2(12, 402), 336, GOLD, 900, RIGHT, 36)
 	for i in 3:
 		var box := Ui.panel(_result, Color(1, 1, 1, 0.06), Vector2(12, 440 + i * 50), Vector2(336, 44), 14, Ui.MEDALS[i], 2)
 		var holder := Ui.avatar(box, Vector2(292, 6), 32, Ui.MEDALS[i], 3)
-		var nm := Ui.label(box, "", 16, Vector2(128, 0), 158, Color.WHITE, 800, RIGHT, 44)
-		var wins := Ui.label(box, "", 14, Vector2(10, 0), 116, Ui.MEDALS[i], 800, LEFT, 44)
+		var nm := Ui.label(box, "", 20, Vector2(124, 0), 162, Color.WHITE, 800, RIGHT, 44)
+		var wins := Ui.label(box, "", 17, Vector2(8, 0), 116, Ui.MEDALS[i], 900, LEFT, 44)
 		_hall.append({"box": box, "holder": holder, "name": nm, "wins": wins})
 
 	var clock := Ui.panel(_result, Color(1, 1, 1, 0.1), Vector2(12, H - 54), Vector2(336, 42), 21)
 	_icon(clock, "clock", Vector2(296, 11), 20, Color("#e2e0ff"))
-	_res_clock = Ui.label(clock, "", 18, Vector2(12, 0), 276, Color("#e2e0ff"), 800, CENTER, 42)
+	_res_clock = Ui.label(clock, "", 21, Vector2(12, 0), 276, Color("#e2e0ff"), 900, CENTER, 42)
 	_result.visible = false

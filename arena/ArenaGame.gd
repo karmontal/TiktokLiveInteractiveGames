@@ -24,6 +24,7 @@ const GOLD := Color("#ffd23f")
 const DANGER := Color("#ff8a8a")
 const MUTED := Color("#b8c2d0")
 const LOOPED := ["idle", "run", "fall", "cheer"]
+const LABEL_Y := {"dmg": 2.2, "label": 2.55, "power": 2.92}   # heights over a fighter at normal size
 const PLAYER_COLORS := ["#7c3aed", "#0e7490", "#be185d", "#b45309", "#15803d", "#1d4ed8", "#a16207",
 	"#334155", "#dc2626", "#0d9488", "#c026d3", "#4d7c0f"]
 const THEMES := {
@@ -38,7 +39,7 @@ const THEMES := {
 }
 const HELP := [["لايك", "ضربة أقوى", "heart", "#ff6b8f"], ["فولو", "درع", "shield", "#7cc4ff"],
 	["شير", "اندفاعة", "bolt", "#5eead4"], ["هدية صغيرة", "قلب", "heal", "#3ddc84"],
-	["هدية متوسطة", "مطرقة", "hammer", "#c084fc"], ["هدية كبيرة", "عملاق", "star", "#ffd23f"]]
+	["هدية وسط", "مطرقة", "hammer", "#c084fc"], ["هدية كبيرة", "عملاق", "star", "#ffd23f"]]
 
 var logic := ArenaLogic.new()
 var director := ArenaCamera.new()
@@ -323,11 +324,11 @@ func _add_view(user: Dictionary, drop: bool) -> void:
 	face.albedo_texture = tex if tex else AvatarCache.placeholder(color.lightened(0.6))
 	mi.set_surface_override_material(2, face)
 
-	var label := _label3d(_name(user), 40, Vector3(0, 2.45, 0))
+	var label := _label3d(_name(user), 64, Vector3(0, 2.55, 0))
 	root.add_child(label)
-	var dmg := _label3d("", 34, Vector3(0, 2.2, 0))       # damage taken: the higher, the farther they fly
+	var dmg := _label3d("", 54, Vector3(0, 2.2, 0))       # damage taken: the higher, the farther they fly
 	root.add_child(dmg)
-	var power := _label3d("", 34, Vector3(0, 2.72, 0))      # like power: how much harder they hit
+	var power := _label3d("", 54, Vector3(0, 2.92, 0))      # like power: how much harder they hit
 	power.modulate = GOLD
 	root.add_child(power)
 
@@ -362,7 +363,7 @@ func _label3d(text: String, font_size: int, pos: Vector3) -> Label3D:
 	l.text = text
 	l.font = _font
 	l.font_size = font_size
-	l.outline_size = 12
+	l.outline_size = 16
 	l.pixel_size = 0.0045
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
@@ -432,6 +433,10 @@ func _update_views(delta: float) -> void:
 		var d: int = roundi(f["damage"])
 		v["dmg"].text = "%d%%" % d if d > 0 else ""
 		v["dmg"].modulate = Color.WHITE.lerp(Color("#ff4d4d"), clampf(d / 120.0, 0.0, 1.0))
+		var far := clampf(_cam_dist / ArenaCamera.MEDIUM, 1.0, 1.8)     # names stay readable from afar
+		for key in LABEL_Y:
+			v[key].scale = Vector3.ONE * far
+			v[key].position.y = 2.0 + (LABEL_Y[key] - 2.0) * far
 		var p: int = roundi(f["power"] * 100.0)
 		v["power"].text = "قوة +%d%%" % p if p >= 5 else ""
 		v["lock"] = maxf(0.0, v["lock"] - delta)
@@ -1190,10 +1195,10 @@ func _icon(parent: Control, kind: String, pos: Vector2, size: float, color: Colo
 
 func _say(text: String, color: Color, icon: String) -> void:
 	var line := Control.new()
-	line.custom_minimum_size = Vector2(W - 40, 32)
+	line.custom_minimum_size = Vector2(W - 32, 36)
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_icon(line, icon, Vector2(W - 62, 6), 20, color)
-	Ui.label(line, text, 18, Vector2.ZERO, W - 74, color, 700, RIGHT, 32)
+	_icon(line, icon, Vector2(W - 58, 7), 22, color)
+	Ui.label(line, text, 21, Vector2.ZERO, W - 66, color, 800, RIGHT, 36)
 	_feed.add_child(line)
 	while _feed.get_child_count() > 3:
 		var first := _feed.get_child(0)
@@ -1244,100 +1249,101 @@ func _build_hud() -> void:
 	_hud = Ui.layer(_ui)
 
 	# Header, then what each interaction does: all at the top, TikTok's comments cover the bottom.
+	# Fonts stay large: the stream shrinks this screen onto a phone.
 	_gradient(_hud, Vector2(W, 250), Color(0.02, 0.03, 0.08, 0.92), Color(0.02, 0.03, 0.08, 0.0))
-	_icon(_hud, "swords", Vector2(474, 12), 32, GOLD)
-	Ui.label(_hud, "معركة الساحة", 34, Vector2(210, 0), 260, GOLD, 900, CENTER, 56)
+	_icon(_hud, "swords", Vector2(486, 10), 34, GOLD)
+	Ui.label(_hud, "معركة الساحة", 36, Vector2(206, -2), 276, GOLD, 900, CENTER, 56)
 	_status = Ui.label(_hud, "", 11, Vector2(W - 120, -2), 112, Color.WHITE, 500, RIGHT, 16)
-	_alive = Ui.label(_hud, "", 19, Vector2(W - 170, 10), 156, Color.WHITE, 900, RIGHT, 26)
-	_total = Ui.label(_hud, "", 13, Vector2(W - 170, 33), 156, MUTED, 700, RIGHT, 20)
-	var pill := Ui.panel(_hud, Color(1, 1, 1, 0.1), Vector2(14, 10), Vector2(106, 36), 18)
-	_icon(pill, "clock", Vector2(12, 8), 20, Color.WHITE)
-	_timer = Ui.label(pill, "", 21, Vector2(36, 0), 62, Color.WHITE, 800, LEFT, 36)
+	_alive = Ui.label(_hud, "", 23, Vector2(W - 180, 6), 166, Color.WHITE, 900, RIGHT, 30)
+	_total = Ui.label(_hud, "", 16, Vector2(W - 180, 32), 166, MUTED, 700, RIGHT, 22)
+	var pill := Ui.panel(_hud, Color(1, 1, 1, 0.12), Vector2(12, 8), Vector2(124, 42), 21)
+	_icon(pill, "clock", Vector2(12, 10), 22, Color.WHITE)
+	_timer = Ui.label(pill, "", 26, Vector2(40, 0), 78, Color.WHITE, 900, LEFT, 42)
 	_timer.text_direction = Control.TEXT_DIRECTION_LTR
 
-	Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.9), Vector2(6, 56), Vector2(W - 12, 96), 18, Color(1, 1, 1, 0.14), 1)
-	var col_w := (W - 16) / HELP.size()
+	Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.9), Vector2(6, 56), Vector2(W - 12, 92), 16, Color(1, 1, 1, 0.14), 1)
+	var cell_w := (W - 24) / 3.0
 	for i in HELP.size():
 		var h: Array = HELP[i]
-		var x := W - 8 - col_w * (i + 1)              # first item on the right
+		var x := W - 12 - cell_w * (i % 3 + 1)          # first item on the right
+		var y := 60.0 + (i / 3) * 44.0
 		var color := Color(h[3])
-		var box := Ui.panel(_hud, Color(color, 0.18), Vector2(x + col_w / 2 - 22, 62), Vector2(44, 44), 14)
-		_icon(box, h[2], Vector2(9, 9), 26, color)
-		Ui.label(_hud, h[0], 16, Vector2(x - 4, 104), col_w + 8, Color.WHITE, 900, CENTER, 24)
-		Ui.label(_hud, h[1], 15, Vector2(x, 125), col_w, color.lightened(0.25), 700, CENTER, 22)
+		var cell := Ui.panel(_hud, Color(color, 0.16), Vector2(x + 2, y), Vector2(cell_w - 4, 40), 12)
+		_icon(cell, h[2], Vector2(cell_w - 38, 7), 26, color)
+		Ui.label(cell, "%s: %s" % [h[0], h[1]], 19, Vector2(6, 0), cell_w - 50, Color.WHITE, 800, RIGHT, 40)
 
 	for i in 3:
 		var x := W - 12.0 - 232.0 * (i + 1) + 8.0     # first place on the right
-		var box := Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.6), Vector2(x, 158), Vector2(224, 50), 25, Ui.MEDALS[i], 2)
-		var badge := Ui.panel(box, Ui.MEDALS[i], Vector2(8, 12), Vector2(26, 26), 13)
-		Ui.label(badge, str(i + 1), 15, Vector2.ZERO, 26, Color("#1a1300"), 900, CENTER, 26)
-		var holder := _avatar(box, Vector2(176, 5), 40, Ui.MEDALS[i])
-		var nm := Ui.label(box, "—", 16, Vector2(40, 2), 130, Color.WHITE, 800, RIGHT, 24)
-		var kos := Ui.label(box, "", 13, Vector2(40, 24), 130, Ui.MEDALS[i], 700, RIGHT, 22)
+		var box := Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.65), Vector2(x, 153), Vector2(224, 52), 26, Ui.MEDALS[i], 2)
+		var badge := Ui.panel(box, Ui.MEDALS[i], Vector2(7, 13), Vector2(26, 26), 13)
+		Ui.label(badge, str(i + 1), 16, Vector2.ZERO, 26, Color("#1a1300"), 900, CENTER, 26)
+		var holder := _avatar(box, Vector2(178, 6), 40, Ui.MEDALS[i])
+		var nm := Ui.label(box, "—", 19, Vector2(36, 0), 138, Color.WHITE, 800, RIGHT, 28)
+		var kos := Ui.label(box, "", 16, Vector2(36, 25), 138, Ui.MEDALS[i], 800, RIGHT, 24)
 		_leaders.append({"box": box, "holder": holder, "name": nm, "kos": kos})
 
-	Ui.panel(_hud, Color(0.02, 0.04, 0.09, 0.72), Vector2(12, 214), Vector2(110, 126), 16, Color(1, 1, 1, 0.22), 2)
-	Ui.label(_hud, "الساحة", 12, Vector2(12, 215), 110, Color("#cfd8e3"), 800, CENTER, 20)
+	Ui.panel(_hud, Color(0.02, 0.04, 0.09, 0.72), Vector2(12, 212), Vector2(110, 126), 16, Color(1, 1, 1, 0.22), 2)
+	Ui.label(_hud, "الساحة", 14, Vector2(12, 212), 110, Color("#cfd8e3"), 800, CENTER, 22)
 	_radar = Control.new()
-	_radar.position = Vector2(12, 214)
+	_radar.position = Vector2(12, 212)
 	_radar.size = Vector2(110, 126)
 	_radar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_radar.draw.connect(_draw_radar)
 	_hud.add_child(_radar)
-	var tb := Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.72), Vector2(W - 172, 216), Vector2(160, 30), 15, Color(1, 1, 1, 0.3), 1)
-	_theme_badge = Ui.label(tb, "", 14, Vector2(6, 0), 148, Color("#e2e8f0"), 800, CENTER, 30)
+	var tb := Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.72), Vector2(W - 182, 212), Vector2(170, 34), 17, Color(1, 1, 1, 0.3), 1)
+	_theme_badge = Ui.label(tb, "", 17, Vector2(6, 0), 158, Color("#e2e8f0"), 800, CENTER, 34)
 
-	_caption = Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.78), Vector2(170, 216), Vector2(380, 38), 19, GOLD, 2)
-	_caption_text = Ui.label(_caption, "", 17, Vector2(10, 0), 360, GOLD, 800, CENTER, 38)
+	_caption = Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.8), Vector2(132, 252), Vector2(456, 44), 22, GOLD, 2)
+	_caption_text = Ui.label(_caption, "", 21, Vector2(10, 0), 436, GOLD, 800, CENTER, 44)
 	_caption.visible = false
-	_warn = Ui.panel(_hud, Color("#5a1414"), Vector2(200, 216), Vector2(320, 38), 19, DANGER, 2)
-	_icon(_warn, "warn", Vector2(284, 8), 22, Color("#ffd0d0"))
-	_warn_text = Ui.label(_warn, "", 17, Vector2(10, 0), 270, Color("#ffd0d0"), 800, CENTER, 38)
+	_warn = Ui.panel(_hud, Color("#5a1414"), Vector2(150, 252), Vector2(420, 44), 22, DANGER, 2)
+	_icon(_warn, "warn", Vector2(378, 10), 24, Color("#ffd0d0"))
+	_warn_text = Ui.label(_warn, "", 21, Vector2(10, 0), 360, Color("#ffd0d0"), 800, CENTER, 44)
 	_warn.visible = false
-	_banner = Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.8), Vector2(150, 262), Vector2(420, 128), 24, GOLD, 3)
-	_banner_title = Ui.label(_banner, "", 21, Vector2(12, 2), 396, Color.WHITE, 800, CENTER, 34)
-	_banner_big = Ui.label(_banner, "", 46, Vector2(12, 28), 396, GOLD, 900, CENTER, 64)
+	_banner = Ui.panel(_hud, Color(0.02, 0.03, 0.08, 0.82), Vector2(100, 256), Vector2(520, 156), 26, GOLD, 3)
+	_banner_title = Ui.label(_banner, "", 27, Vector2(12, 2), 496, Color.WHITE, 900, CENTER, 42)
+	_banner_big = Ui.label(_banner, "", 58, Vector2(12, 38), 496, GOLD, 900, CENTER, 72)
 	_banner_big.text_direction = Control.TEXT_DIRECTION_LTR
-	_banner_sub = Ui.label(_banner, "", 16, Vector2(12, 90), 396, Color("#e2e8f0"), 700, CENTER, 30)
+	_banner_sub = Ui.label(_banner, "", 21, Vector2(12, 112), 496, Color("#e2e8f0"), 800, CENTER, 38)
 	_banner.visible = false
 
 	_feed = VBoxContainer.new()
-	_feed.position = Vector2(20, H - 104)
-	_feed.size = Vector2(W - 40, 100)
+	_feed.position = Vector2(16, H - 112)
+	_feed.size = Vector2(W - 32, 108)
 	_feed.add_theme_constant_override("separation", 0)
 	_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.add_child(_feed)
 
 	_popup = Ui.panel(_hud, Color("#3b1d4a"), Vector2(90, 290), Vector2(540, 150), 24, GOLD, 4)
 	_popup.pivot_offset = Vector2(270, 75)
-	_popup_text = Ui.paragraph(_popup, "", 30, Vector2(14, 6), Vector2(512, 138), GOLD, 800)
+	_popup_text = Ui.paragraph(_popup, "", 36, Vector2(14, 6), Vector2(512, 138), GOLD, 800)
 	_popup.visible = false
 
 	# Result: the winner cheers in the middle, round KOs on the right, the stream's champions on the left.
 	_result = Ui.layer(_ui)
 	_gradient(_result, Vector2(W, 200), Color(0.05, 0.03, 0.15, 0.95), Color(0.05, 0.03, 0.15, 0.0))
 	Ui.panel(_result, Color(0.05, 0.03, 0.15, 0.9), Vector2(0, 412), Vector2(W, H - 412))
-	_res_round = Ui.label(_result, "", 18, Vector2(0, 8), W, Color("#e9d5ff"), 800, CENTER, 30)
-	_res_title = Ui.label(_result, "", 46, Vector2(0, 32), W, GOLD, 900, CENTER, 70)
-	_res_name = Ui.label(_result, "", 36, Vector2(0, 330), W, Color.WHITE, 900, CENTER, 50)
-	_res_stats = Ui.label(_result, "", 17, Vector2(0, 378), W, Color("#f5d0fe"), 700, CENTER, 30)
-	Ui.label(_result, "أكثر إقصاء بالجولة", 19, Vector2(372, 418), 336, GOLD, 900, RIGHT, 32)
+	_res_round = Ui.label(_result, "", 21, Vector2(0, 4), W, Color("#e9d5ff"), 800, CENTER, 32)
+	_res_title = Ui.label(_result, "", 50, Vector2(0, 30), W, GOLD, 900, CENTER, 72)
+	_res_name = Ui.label(_result, "", 40, Vector2(0, 322), W, Color.WHITE, 900, CENTER, 54)
+	_res_stats = Ui.label(_result, "", 21, Vector2(0, 372), W, Color("#f5d0fe"), 800, CENTER, 34)
+	Ui.label(_result, "أكثر إقصاء بالجولة", 22, Vector2(372, 414), 336, GOLD, 900, RIGHT, 36)
 	for i in 4:
 		var box := Ui.panel(_result, Color(1, 1, 1, 0.07), Vector2(372, 454 + i * 52), Vector2(336, 46), 14)
-		Ui.label(box, str(i + 1), 18, Vector2(304, 0), 28, Color("#e9d5ff"), 900, CENTER, 46)
+		Ui.label(box, str(i + 1), 21, Vector2(304, 0), 28, Color("#e9d5ff"), 900, CENTER, 46)
 		var holder := _avatar(box, Vector2(266, 6), 34, Color.WHITE, 2)
-		var nm := Ui.label(box, "", 17, Vector2(96, 0), 164, Color.WHITE, 800, RIGHT, 46)
-		var kos := Ui.label(box, "", 15, Vector2(10, 0), 84, Color("#ff8a8a"), 800, LEFT, 46)
+		var nm := Ui.label(box, "", 20, Vector2(100, 0), 160, Color.WHITE, 800, RIGHT, 46)
+		var kos := Ui.label(box, "", 18, Vector2(8, 0), 92, Color("#ff8a8a"), 800, LEFT, 46)
 		_res_rows.append({"box": box, "holder": holder, "name": nm, "kos": kos})
-	Ui.label(_result, "أبطال البث", 19, Vector2(12, 418), 336, GOLD, 900, RIGHT, 32)
+	Ui.label(_result, "أبطال البث", 22, Vector2(12, 414), 336, GOLD, 900, RIGHT, 36)
 	for i in 3:
 		var box := Ui.panel(_result, Color(1, 1, 1, 0.06), Vector2(12, 454 + i * 52), Vector2(336, 46), 14, Ui.MEDALS[i], 2)
 		var holder := _avatar(box, Vector2(290, 6), 34, Ui.MEDALS[i])
-		var nm := Ui.label(box, "", 17, Vector2(128, 0), 156, Color.WHITE, 800, RIGHT, 46)
-		var line := Ui.label(box, "", 13, Vector2(10, 0), 118, Ui.MEDALS[i], 800, LEFT, 46)
+		var nm := Ui.label(box, "", 20, Vector2(140, 0), 144, Color.WHITE, 800, RIGHT, 46)
+		var line := Ui.label(box, "", 16, Vector2(8, 0), 134, Ui.MEDALS[i], 800, LEFT, 46)
 		_hall.append({"box": box, "holder": holder, "name": nm, "line": line})
-	_hall_empty = Ui.label(_result, "لسا ما فاز حدا من المشاهدين، انزل وكون أول بطل!", 15, Vector2(12, 454), 336, MUTED, 700, CENTER, 46)
+	_hall_empty = Ui.paragraph(_result, "لسا ما فاز حدا من المشاهدين، انزل وكون أول بطل!", 19, Vector2(12, 454), Vector2(336, 90), MUTED, 700)
 	var clock := Ui.panel(_result, Color(1, 1, 1, 0.1), Vector2(12, H - 52), Vector2(336, 42), 21)
 	_icon(clock, "clock", Vector2(296, 11), 20, Color("#f3e8ff"))
-	_res_clock = Ui.label(clock, "", 18, Vector2(12, 0), 276, Color("#f3e8ff"), 800, CENTER, 42)
+	_res_clock = Ui.label(clock, "", 21, Vector2(12, 0), 276, Color("#f3e8ff"), 800, CENTER, 42)
 	_result.visible = false

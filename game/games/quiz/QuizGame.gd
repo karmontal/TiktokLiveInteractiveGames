@@ -11,9 +11,9 @@ const DEFAULT_PACK := "general"
 const W := 720.0
 const RIGHT := HORIZONTAL_ALIGNMENT_RIGHT
 const LEFT := HORIZONTAL_ALIGNMENT_LEFT
-const OPTION_Y := 318.0
-const OPTION_H := 56.0
-const OPTION_GAP := 7.0
+const OPTION_Y := 330.0
+const OPTION_H := 52.0
+const OPTION_GAP := 6.0
 const BAR_W := 630.0
 const GIFT_ROWS := [
 	["1+", "هدية صغيرة", "1–9 كوين · مثل الوردة", "+3 ثواني للسؤال ونقاطك ×2", Color("#7cc4ff")],
@@ -208,8 +208,8 @@ func _show_break(fx: Dictionary) -> void:
 		chip.add_theme_stylebox_override("panel", sb)
 		var l := Label.new()
 		l.text = str(cat)
-		l.add_theme_font_size_override("font_size", 20)
-		l.add_theme_font_override("font", Ui.font(700))
+		l.add_theme_font_size_override("font_size", 22)
+		l.add_theme_font_override("font", Ui.font(800))
 		chip.add_child(l)
 		_cat_box.add_child(chip)
 	var champ: Dictionary = fx["champion"]
@@ -367,89 +367,90 @@ func _avatar(parent: Node, pos: Vector2, diameter: float, ring: Color, ring_widt
 
 
 func _pill(parent: Node, text: String, pos: Vector2, width: float) -> Label:
-	Ui.panel(parent, _panel, pos, Vector2(width, 38), 19)
-	return Ui.label(parent, text, 18, pos, width, Color.WHITE, 600, HORIZONTAL_ALIGNMENT_CENTER, 38)
+	Ui.panel(parent, _panel, pos, Vector2(width, 40), 20)
+	return Ui.label(parent, text, 20, pos, width, Color.WHITE, 800, HORIZONTAL_ALIGNMENT_CENTER, 40)
 
 
 func _build_play() -> void:
 	_play = Ui.layer(_ui)
-	Ui.label(_play, title, 28, Vector2(380, 2), 324, _accent, 800, RIGHT, 46)
+	Ui.label(_play, title, 30, Vector2(380, 0), 324, _accent, 900, RIGHT, 48)
 	_category = _pill(_play, "", Vector2(16, 6), 160)
 	_counter = _pill(_play, "", Vector2(186, 6), 170)
 
 	# How to play, at the top: TikTok's comments cover the bottom of the stream.
-	Ui.rect(_play, _bar, Vector2(0, 50), Vector2(W, 104))
-	_bottom_title = Ui.label(_play, "", 22, Vector2(0, 48), W, Color.WHITE, 800, HORIZONTAL_ALIGNMENT_CENTER, 36)
+	Ui.rect(_play, _bar, Vector2(0, 50), Vector2(W, 108))
+	_bottom_title = Ui.label(_play, "", 24, Vector2(0, 48), W, Color.WHITE, 900, HORIZONTAL_ALIGNMENT_CENTER, 38)
 	_chips = Ui.layer(_play)
 	var chip_text := ["50 لايك = حذف جواب غلط", "فولو = تغيير جوابك مرة", "شير = نقاطك ضعفين",
 			"هدية = وقت إضافي ونقاط أكثر"]
 	for i in 4:
-		var pos := Vector2(364.0 if i % 2 == 0 else 16.0, 84.0 + (i / 2) * 35.0)
-		Ui.panel(_chips, _card, pos, Vector2(340, 31), 10)
-		Ui.label(_chips, chip_text[i], 17, pos, 340, Color.WHITE, 700, HORIZONTAL_ALIGNMENT_CENTER, 31)
+		var pos := Vector2(364.0 if i % 2 == 0 else 16.0, 86.0 + (i / 2) * 36.0)
+		Ui.panel(_chips, _card, pos, Vector2(340, 33), 10)
+		Ui.label(_chips, chip_text[i], 20, pos, 340, Color.WHITE, 800, HORIZONTAL_ALIGNMENT_CENTER, 33)
 
 	_timer_box = Ui.layer(_play)
-	Ui.panel(_timer_box, _panel, Vector2(74, 176), Vector2(BAR_W, 12), 6)
-	_timer_fill = Ui.rect(_timer_box, _accent, Vector2(74, 176), Vector2(BAR_W, 12))
-	Ui.panel(_timer_box, _bg, Vector2(16, 160), Vector2(46, 46), 23, _accent, 3)
-	_timer_num = Ui.label(_timer_box, "", 22, Vector2(16, 160), 46, Color.WHITE, 800, HORIZONTAL_ALIGNMENT_CENTER, 46)
+	Ui.panel(_timer_box, _panel, Vector2(74, 180), Vector2(BAR_W, 12), 6)
+	_timer_fill = Ui.rect(_timer_box, _accent, Vector2(74, 180), Vector2(BAR_W, 12))
+	Ui.panel(_timer_box, _bg, Vector2(14, 162), Vector2(50, 50), 25, _accent, 3)
+	_timer_num = Ui.label(_timer_box, "", 25, Vector2(14, 162), 50, Color.WHITE, 900, HORIZONTAL_ALIGNMENT_CENTER, 50)
 
-	Ui.panel(_play, _card, Vector2(16, 212), Vector2(688, 100), 22)
-	_question = Ui.paragraph(_play, "", 28, Vector2(32, 214), Vector2(656, 96), Color.WHITE, 800)
+	Ui.panel(_play, _card, Vector2(16, 216), Vector2(688, 108), 22)
+	_question = Ui.paragraph(_play, "", 30, Vector2(30, 216), Vector2(660, 108), Color.WHITE, 900)
+	_question.add_theme_constant_override("line_spacing", -10)
 
 	for i in 4:
 		var y := OPTION_Y + i * (OPTION_H + OPTION_GAP)
 		var row := Ui.panel(_play, _panel, Vector2(16, y), Vector2(688, OPTION_H), 16)
 		row.clip_contents = true
 		_bars.append(Ui.rect(row, Color(0.23, 0.51, 0.96, 0.38), Vector2(688, 0), Vector2(0, OPTION_H)))
-		Ui.panel(row, _bg, Vector2(636, 7), Vector2(42, 42), 12)
-		_letters.append(Ui.label(row, QuizLogic.LETTERS[i], 26, Vector2(636, 7), 42, _accent, 800,
+		Ui.panel(row, _bg, Vector2(638, 5), Vector2(42, 42), 12)
+		_letters.append(Ui.label(row, QuizLogic.LETTERS[i], 27, Vector2(638, 5), 42, _accent, 900,
 				HORIZONTAL_ALIGNMENT_CENTER, 42))
-		_texts.append(Ui.label(row, "", 23, Vector2(90, 0), 534, Color.WHITE, 700, RIGHT, OPTION_H))
-		_pcts.append(Ui.label(row, "", 20, Vector2(14, 0), 72, Color(1, 1, 1, 0.85), 800, LEFT, OPTION_H))
+		_texts.append(Ui.label(row, "", 26, Vector2(86, 0), 542, Color.WHITE, 800, RIGHT, OPTION_H))
+		_pcts.append(Ui.label(row, "", 22, Vector2(12, 0), 74, Color(1, 1, 1, 0.9), 900, LEFT, OPTION_H))
 		_rows.append(row)
 
-	_answered = Ui.label(_play, "", 17, Vector2(400, 566), 304, Ui.MUTED, 600, RIGHT, 30)
-	_notice = Ui.label(_play, "", 17, Vector2(16, 566), 400, _accent, 700, LEFT, 30)
+	_answered = Ui.label(_play, "", 20, Vector2(380, 558), 324, Ui.MUTED, 800, RIGHT, 32)
+	_notice = Ui.label(_play, "", 20, Vector2(16, 558), 380, _accent, 800, LEFT, 32)
 
 	_live = Ui.layer(_play)
-	Ui.panel(_live, _card, Vector2(16, 598), Vector2(688, 54), 16)
-	Ui.label(_live, "لايكات لحذف جواب غلط", 17, Vector2(300, 598), 388, Color.WHITE, 600, RIGHT, 30)
-	_likes_count = Ui.label(_live, "", 17, Vector2(32, 598), 260, Ui.LIKE, 800, LEFT, 30)
+	Ui.panel(_live, _card, Vector2(16, 592), Vector2(688, 58), 16)
+	Ui.label(_live, "لايكات لحذف جواب غلط", 20, Vector2(300, 590), 388, Color.WHITE, 800, RIGHT, 34)
+	_likes_count = Ui.label(_live, "", 20, Vector2(32, 590), 260, Ui.LIKE, 900, LEFT, 34)
 	_likes_count.text_direction = Control.TEXT_DIRECTION_AUTO   # "17 / 50", not "50 / 17"
-	Ui.panel(_live, _bg, Vector2(32, 632), Vector2(656, 10), 5)
-	_likes_fill = Ui.rect(_live, Ui.LIKE, Vector2(32, 632), Vector2(0, 10))
+	Ui.panel(_live, _bg, Vector2(32, 628), Vector2(656, 12), 6)
+	_likes_fill = Ui.rect(_live, Ui.LIKE, Vector2(32, 628), Vector2(0, 12))
 	for i in 3:
 		var x := 16.0 + (2 - i) * 232.0        # first place on the right
-		var card := Ui.panel(_live, _card, Vector2(x, 658), Vector2(224, 56), 16)
-		var av := _avatar(card, Vector2(176, 8), 40, Ui.MEDALS[i], 3)
-		var nm := Ui.label(card, "", 16, Vector2(8, 2), 162, Color.WHITE, 600, RIGHT, 28)
-		var sc := Ui.label(card, "", 14, Vector2(8, 28), 162, _accent, 800, RIGHT, 24)
+		var card := Ui.panel(_live, _card, Vector2(x, 656), Vector2(224, 60), 16)
+		var av := _avatar(card, Vector2(176, 10), 40, Ui.MEDALS[i], 3)
+		var nm := Ui.label(card, "", 19, Vector2(8, 2), 162, Color.WHITE, 800, RIGHT, 30)
+		var sc := Ui.label(card, "", 17, Vector2(8, 30), 162, _accent, 900, RIGHT, 26)
 		_top_cards.append({"root": card, "avatar": av, "name": nm, "score": sc})
-	_top_cards[0]["empty"] = Ui.label(_live, "جاوب صح وكون أول واحد بمتصدرين البث!", 18, Vector2(16, 658), 688, Ui.MUTED, 600,
-			HORIZONTAL_ALIGNMENT_CENTER, 56)
+	_top_cards[0]["empty"] = Ui.label(_live, "جاوب صح وكون أول واحد بمتصدرين البث!", 21, Vector2(16, 656), 688, Ui.MUTED, 800,
+			HORIZONTAL_ALIGNMENT_CENTER, 60)
 
 	_reveal = Ui.layer(_play)
-	Ui.panel(_reveal, _card, Vector2(16, 598), Vector2(688, 118), 18)
-	Ui.label(_reveal, "الأسرع", 17, Vector2(16, 596), 688, _accent, 800, HORIZONTAL_ALIGNMENT_CENTER, 28)
+	Ui.panel(_reveal, _card, Vector2(16, 592), Vector2(688, 126), 18)
+	Ui.label(_reveal, "الأسرع", 20, Vector2(16, 588), 688, _accent, 900, HORIZONTAL_ALIGNMENT_CENTER, 32)
 	for i in 3:
-		var y := 624.0 + i * 30.0
-		var row := Ui.panel(_reveal, _panel, Vector2(28, y), Vector2(664, 27), 9)
-		Ui.panel(row, Ui.MEDALS[i], Vector2(638, 3), Vector2(21, 21), 10)
-		Ui.label(row, str(i + 1), 13, Vector2(638, 3), 21, _bg, 800, HORIZONTAL_ALIGNMENT_CENTER, 21)
-		var av := _avatar(row, Vector2(610, 2), 23, Ui.AVATAR_BG, 0)
-		var nm := Ui.label(row, "", 16, Vector2(330, 0), 274, Color.WHITE, 700, RIGHT, 27)
-		var tm := Ui.label(row, "", 14, Vector2(120, 0), 200, Ui.MUTED, 500, RIGHT, 27)
-		var pts := Ui.label(row, "", 17, Vector2(10, 0), 96, Ui.GOOD, 800, LEFT, 27)
+		var y := 618.0 + i * 33.0
+		var row := Ui.panel(_reveal, _panel, Vector2(28, y), Vector2(664, 31), 10)
+		Ui.panel(row, Ui.MEDALS[i], Vector2(636, 4), Vector2(23, 23), 11)
+		Ui.label(row, str(i + 1), 15, Vector2(636, 4), 23, _bg, 900, HORIZONTAL_ALIGNMENT_CENTER, 23)
+		var av := _avatar(row, Vector2(606, 3), 25, Ui.AVATAR_BG, 0)
+		var nm := Ui.label(row, "", 20, Vector2(330, 0), 270, Color.WHITE, 800, RIGHT, 31)
+		var tm := Ui.label(row, "", 16, Vector2(120, 0), 200, Ui.MUTED, 700, RIGHT, 31)
+		var pts := Ui.label(row, "", 20, Vector2(10, 0), 100, Ui.GOOD, 900, LEFT, 31)
 		_fast_rows.append({"root": row, "avatar": av, "name": nm, "time": tm, "points": pts})
-	_fast_rows[0]["empty"] = Ui.label(_reveal, "ما حدا جاوب صح هالمرة", 20, Vector2(16, 624), 688, Ui.MUTED, 600,
+	_fast_rows[0]["empty"] = Ui.label(_reveal, "ما حدا جاوب صح هالمرة", 23, Vector2(16, 624), 688, Ui.MUTED, 600,
 			HORIZONTAL_ALIGNMENT_CENTER, 90)
 
 
 func _build_board() -> void:
 	_board = Ui.layer(_ui)
 	Ui.label(_board, "ترتيب البث", 40, Vector2(0, -4), W, _accent, 800, HORIZONTAL_ALIGNMENT_CENTER, 60)
-	_board_sub = Ui.label(_board, "", 17, Vector2(0, 48), W, Ui.MUTED, 500, HORIZONTAL_ALIGNMENT_CENTER, 28)
+	_board_sub = Ui.label(_board, "", 20, Vector2(0, 46), W, Ui.MUTED, 800, HORIZONTAL_ALIGNMENT_CENTER, 32)
 	var heights := [96.0, 70.0, 50.0]
 	var xs := [255.0, 485.0, 25.0]           # 1st in the middle, 2nd right, 3rd left
 	for i in 3:
@@ -458,8 +459,8 @@ func _build_board() -> void:
 		var base_top: float = 334.0 - heights[i]
 		var d := 84.0 if i == 0 else 70.0
 		var av := _avatar(col, Vector2(x + (210 - d) / 2, base_top - d - 58), d, Ui.MEDALS[i], 4)
-		var nm := Ui.label(col, "", 19, Vector2(x, base_top - 58), 210, Color.WHITE, 800, HORIZONTAL_ALIGNMENT_CENTER, 30)
-		var sc := Ui.label(col, "", 17, Vector2(x, base_top - 30), 210, Ui.MEDALS[i], 800, HORIZONTAL_ALIGNMENT_CENTER, 28)
+		var nm := Ui.label(col, "", 22, Vector2(x, base_top - 60), 210, Color.WHITE, 900, HORIZONTAL_ALIGNMENT_CENTER, 32)
+		var sc := Ui.label(col, "", 20, Vector2(x, base_top - 30), 210, Ui.MEDALS[i], 900, HORIZONTAL_ALIGNMENT_CENTER, 30)
 		Ui.panel(col, Ui.MEDALS[i], Vector2(x, base_top), Vector2(210, heights[i] + 14), 14)
 		Ui.label(col, str(i + 1), 36, Vector2(x, base_top), 210, _bg, 800, HORIZONTAL_ALIGNMENT_CENTER, heights[i])
 		_podium.append({"root": col, "avatar": av, "name": nm, "score": sc})
@@ -467,25 +468,25 @@ func _build_board() -> void:
 	for i in 7:
 		var y := 344.0 + i * 46.0
 		var row := Ui.panel(_board, _card, Vector2(16, y), Vector2(688, 42), 12)
-		Ui.label(row, str(i + 4), 18, Vector2(646, 0), 36, Color(1, 1, 1, 0.7), 800, HORIZONTAL_ALIGNMENT_CENTER, 42)
+		Ui.label(row, str(i + 4), 21, Vector2(646, 0), 36, Color(1, 1, 1, 0.75), 900, HORIZONTAL_ALIGNMENT_CENTER, 42)
 		var av := _avatar(row, Vector2(608, 5), 32, Ui.AVATAR_BG, 0)
-		var nm := Ui.label(row, "", 18, Vector2(260, 0), 340, Color.WHITE, 600, RIGHT, 42)
-		var cr := Ui.label(row, "", 15, Vector2(130, 0), 110, Ui.MUTED, 500, HORIZONTAL_ALIGNMENT_CENTER, 42)
-		var sc := Ui.label(row, "", 18, Vector2(14, 0), 110, _accent, 800, LEFT, 42)
+		var nm := Ui.label(row, "", 21, Vector2(250, 0), 350, Color.WHITE, 800, RIGHT, 42)
+		var cr := Ui.label(row, "", 18, Vector2(130, 0), 116, Ui.MUTED, 800, HORIZONTAL_ALIGNMENT_CENTER, 42)
+		var sc := Ui.label(row, "", 21, Vector2(12, 0), 116, _accent, 900, LEFT, 42)
 		_board_rows.append({"root": row, "avatar": av, "name": nm, "correct": cr, "score": sc})
 	Ui.rect(_board, _bar, Vector2(0, 668), Vector2(W, 52))
-	Ui.label(_board, "مش بالقائمة؟ كل جواب صح بيقرّبك", 17, Vector2(300, 668), 404, Color.WHITE, 800, RIGHT, 52)
-	_board_clock = Ui.label(_board, "", 15, Vector2(16, 668), 280, Ui.MUTED, 500, LEFT, 52)
+	Ui.label(_board, "مش بالقائمة؟ كل جواب صح بيقرّبك", 20, Vector2(300, 668), 404, Color.WHITE, 900, RIGHT, 52)
+	_board_clock = Ui.label(_board, "", 18, Vector2(16, 668), 280, Ui.MUTED, 800, LEFT, 52)
 
 
 func _build_break() -> void:
 	_break = Ui.layer(_ui)
 	Ui.label(_break, title, 34, Vector2(130, -2), 574, _accent, 800, RIGHT, 52)
-	Ui.label(_break, "الجولة الجاية بتبلّش بعد", 18, Vector2(130, 46), 574, Ui.MUTED, 500, RIGHT, 30)
+	Ui.label(_break, "الجولة الجاية بتبلّش بعد", 20, Vector2(130, 42), 574, Ui.MUTED, 800, RIGHT, 32)
 	Ui.panel(_break, _bg, Vector2(16, 8), Vector2(96, 96), 48, _accent, 5)
 	_break_clock = Ui.label(_break, "", 36, Vector2(16, 8), 96, Color.WHITE, 800, HORIZONTAL_ALIGNMENT_CENTER, 96)
 
-	Ui.label(_break, "تصنيفات الجولة الجاية", 17, Vector2(130, 78), 574, Color(1, 1, 1, 0.85), 800, RIGHT, 28)
+	Ui.label(_break, "تصنيفات الجولة الجاية", 19, Vector2(130, 76), 574, Color(1, 1, 1, 0.85), 900, RIGHT, 32)
 	_cat_box = HBoxContainer.new()
 	_cat_box.position = Vector2(16, 112)
 	_cat_box.size = Vector2(688, 38)
@@ -495,35 +496,35 @@ func _build_break() -> void:
 
 	Ui.panel(_break, Color("#2a2210"), Vector2(16, 158), Vector2(688, 76), 20, _accent, 3)
 	_champ_avatar = _avatar(_break, Vector2(630, 166), 60, _accent, 3)
-	_champ_title = Ui.label(_break, "", 15, Vector2(200, 160), 420, _accent, 700, RIGHT, 26)
-	_champ_name = Ui.label(_break, "", 24, Vector2(200, 184), 420, Color.WHITE, 800, RIGHT, 42)
-	_champ_score = Ui.paragraph(_break, "", 16, Vector2(28, 162), Vector2(160, 68), Color.WHITE, 800)
+	_champ_title = Ui.label(_break, "", 18, Vector2(200, 158), 420, _accent, 800, RIGHT, 28)
+	_champ_name = Ui.label(_break, "", 27, Vector2(200, 184), 420, Color.WHITE, 900, RIGHT, 44)
+	_champ_score = Ui.paragraph(_break, "", 19, Vector2(28, 160), Vector2(170, 72), Color.WHITE, 900)
 
 	Ui.panel(_break, _card, Vector2(16, 242), Vector2(688, 66), 18)
-	Ui.paragraph(_break, "اكتب بالتعليق A أو B أو C أو D · أول جواب بس بيحسب\nكل ما جاوبت صح أسرع نقاطك بتزيد", 18,
+	Ui.paragraph(_break, "اكتب بالتعليق A أو B أو C أو D · أول جواب بس بيحسب\nكل ما جاوبت صح أسرع نقاطك بتزيد", 20,
 			Vector2(28, 244), Vector2(664, 62))
 
-	Ui.label(_break, "مجاناً", 17, Vector2(16, 312), 688, Color(1, 1, 1, 0.85), 800, RIGHT, 28)
+	Ui.label(_break, "مجاناً", 19, Vector2(16, 310), 688, Color(1, 1, 1, 0.85), 900, RIGHT, 32)
 	var free := [["50 لايك", "حذف جواب غلط للكل", Ui.LIKE], ["فولو", "تغيير جوابك مرة", Ui.BLUE],
 			["شير", "نقاطك ضعفين", Ui.GOOD]]
 	for i in 3:
 		var x := 16.0 + (2 - i) * 232.0
 		Ui.panel(_break, _card, Vector2(x, 342), Vector2(224, 62), 16)
-		Ui.label(_break, free[i][0], 19, Vector2(x, 342), 224, free[i][2], 800, HORIZONTAL_ALIGNMENT_CENTER, 32)
-		Ui.label(_break, free[i][1], 16, Vector2(x, 372), 224, Color(1, 1, 1, 0.85), 500, HORIZONTAL_ALIGNMENT_CENTER, 28)
+		Ui.label(_break, free[i][0], 22, Vector2(x, 340), 224, free[i][2], 900, HORIZONTAL_ALIGNMENT_CENTER, 34)
+		Ui.label(_break, free[i][1], 19, Vector2(x, 372), 224, Color(1, 1, 1, 0.9), 800, HORIZONTAL_ALIGNMENT_CENTER, 30)
 
-	Ui.label(_break, "الهدايا", 17, Vector2(16, 408), 688, Color(1, 1, 1, 0.85), 800, RIGHT, 28)
+	Ui.label(_break, "الهدايا", 19, Vector2(16, 406), 688, Color(1, 1, 1, 0.85), 900, RIGHT, 32)
 	for i in GIFT_ROWS.size():
 		var g: Array = GIFT_ROWS[i]
 		var y := 438.0 + i * 82.0
 		var row := Ui.panel(_break, _card, Vector2(16, y), Vector2(688, 76), 16)
 		Ui.rect(row, g[4], Vector2(682, 12), Vector2(6, 52))
 		Ui.panel(row, _bg, Vector2(612, 14), Vector2(52, 48), 12)
-		Ui.label(row, g[0], 18, Vector2(612, 14), 52, g[4], 800, HORIZONTAL_ALIGNMENT_CENTER, 48)
-		Ui.label(row, "%s  ·  %s" % [g[1], g[2]], 17, Vector2(14, 4), 586, g[4], 800, RIGHT, 32)
-		Ui.label(row, g[3], 17, Vector2(14, 38), 586, Color.WHITE, 600, RIGHT, 32)
+		Ui.label(row, g[0], 20, Vector2(612, 14), 52, g[4], 900, HORIZONTAL_ALIGNMENT_CENTER, 48)
+		Ui.label(row, "%s  ·  %s" % [g[1], g[2]], 20, Vector2(14, 2), 590, g[4], 900, RIGHT, 36)
+		Ui.label(row, g[3], 19, Vector2(14, 38), 590, Color.WHITE, 800, RIGHT, 34)
 
-	Ui.label(_break, "الترتيب بيبلّش من الصفر مع كل بث", 15, Vector2(0, 686), W, Color(1, 1, 1, 0.7), 500,
+	Ui.label(_break, "الترتيب بيبلّش من الصفر مع كل بث", 17, Vector2(0, 686), W, Color(1, 1, 1, 0.75), 800,
 			HORIZONTAL_ALIGNMENT_CENTER, 30)
 
 
