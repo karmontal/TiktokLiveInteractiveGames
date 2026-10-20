@@ -1,0 +1,40 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="TikTok Live Arena"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+run/max_fps=30
+
+[autoload]
+
+EventBus="*res://core/EventBus.gd"
+AvatarCache="*res://core/AvatarCache.gd"
+Music="*res://core/Music.gd"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/size/window_width_override=450
+window/size/window_height_override=800
+window/stretch/mode="canvas_items"
+
+[gui]
+
+theme/custom_font="res://assets/fonts/Cairo.ttf"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+anti_aliasing/quality/msaa_3d=1

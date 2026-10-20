@@ -19,6 +19,7 @@ import numpy as np
 
 SR = 44100
 OUT = Path(__file__).resolve().parent.parent / "game" / "assets" / "music"
+ARENA_OUT = Path(__file__).resolve().parent.parent / "arena" / "assets" / "music"
 RNG = np.random.default_rng(7)
 
 
@@ -242,12 +243,44 @@ def climb_adventure() -> np.ndarray:
     return tr.render()
 
 
+def arena_battle() -> np.ndarray:
+    """140 BPM, E minor, pounding toms and brass stabs: a fight is on."""
+    tr = Track(140, 16)
+    prog = [(52, True), (48, False), (50, False), (47, False)]      # Em C D B
+    for bar in range(16):
+        root, minor = prog[bar % 4]
+        notes = triad(root, minor)
+        b0 = bar * 4
+        for beat in range(4):
+            tr.add("drums", kick(), b0 + beat, 0.6)
+            tr.pump(b0 + beat, 0.5)
+            tr.add("drums", hat(0.04), b0 + beat + 0.5, 0.15, pan=0.25)
+            for k in (0.0, 0.5):
+                tr.add("music", bass(hz(root - 12), 0.22 * tr.beat), b0 + beat + k, 0.3)
+        tr.add("drums", snare(), b0 + 1, 0.35)
+        tr.add("drums", snare(), b0 + 3, 0.35)
+        tr.add("drums", clap(), b0 + 3.75, 0.18)
+        for i, f in enumerate((140, 120)):
+            tr.add("drums", tom(f), b0 + 2.5 + i * 0.25, 0.25, pan=-0.3 if i else 0.3)
+        for n in notes:
+            tr.add("music", pad(hz(n + 12), 4 * tr.beat), b0, 0.03)
+        tr.add("music", brass(hz(notes[0] + 12), 0.5 * tr.beat), b0, 0.09)
+        tr.add("music", brass(hz(notes[2] + 12), 0.5 * tr.beat), b0 + 1.5, 0.07)
+        for i in range(8):
+            tr.add("music", pluck(hz(notes[i % 3] + 24), 0.18, 0.7), b0 + i * 0.5, 0.05, pan=0.4 if i % 2 else -0.4)
+        if bar % 8 == 7:
+            for i, f in enumerate((220, 180, 150, 120, 100, 90)):
+                tr.add("drums", tom(f), b0 + 1 + i * 0.5, 0.33)
+    return tr.render()
+
+
 TRACKS = {"quiz_think": quiz_think, "tug_energy": tug_energy, "football_stadium": football_stadium,
           "climb_adventure": climb_adventure}
+ARENA_TRACKS = {"arena_battle": arena_battle}
 
 
-def save_ogg(name: str, stereo: np.ndarray) -> Path:
-    OUT.mkdir(parents=True, exist_ok=True)
+def save_ogg(name: str, stereo: np.ndarray, out_dir: Path = OUT) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
     pcm = (np.clip(stereo.T, -1, 1) * 32767).astype("<i2")
     with tempfile.TemporaryDirectory() as tmp:
         wav = Path(tmp) / f"{name}.wav"
@@ -256,7 +289,7 @@ def save_ogg(name: str, stereo: np.ndarray) -> Path:
             w.setsampwidth(2)
             w.setframerate(SR)
             w.writeframes(pcm.tobytes())
-        out = OUT / f"{name}.ogg"
+        out = out_dir / f"{name}.ogg"
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(wav), "-c:a", "libvorbis",
                         "-q:a", "4", str(out)], check=True)
     return out
@@ -266,3 +299,6 @@ if __name__ == "__main__":
     for name, make in TRACKS.items():
         path = save_ogg(name, make())
         print(f"{path.name}  {path.stat().st_size // 1024} KB")
+    for name, make in ARENA_TRACKS.items():
+        path = save_ogg(name, make(), ARENA_OUT)
+        print(f"arena/{path.name}  {path.stat().st_size // 1024} KB")

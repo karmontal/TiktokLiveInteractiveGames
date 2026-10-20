@@ -7,6 +7,7 @@
 #   ./run-live.sh mychannel quiz football    # quiz, football questions
 #   ./run-live.sh mychannel tug_of_war
 #   ./run-live.sh mychannel climb
+#   ./run-live.sh mychannel arena           # the 3D arena brawl (its own project in arena/)
 #   ./run-live.sh mock quiz                  # fake viewers, no TikTok needed
 #
 # Then in LIVE Studio: Window Capture -> the Godot window -> Go LIVE.
@@ -24,10 +25,12 @@ LOGS="$ROOT/logs"
 mkdir -p "$LOGS"
 
 if [ -z "$USERNAME" ]; then
-  echo "usage: ./run-live.sh <tiktok_username|mock> [quiz|tug_of_war|climb] [pack]"
+  echo "usage: ./run-live.sh <tiktok_username|mock> [quiz|tug_of_war|climb|arena] [pack]"
   exit 1
 fi
 USERNAME="${USERNAME#@}"
+PROJECT="$ROOT/game"
+[ "$GAME" = "arena" ] && PROJECT="$ROOT/arena"
 
 # ---- Python environment for the bridge (created on first run, updated when requirements change)
 VENV="$ROOT/bridge/.venv"
@@ -64,7 +67,7 @@ if [ -z "$GODOT" ]; then
 fi
 # Import new or changed files (music, fonts) every run; quick when nothing changed.
 echo "Importing the Godot project ..."
-"$GODOT" --headless --path "$ROOT/game" --editor --quit >>"$LOGS/game.log" 2>&1
+"$GODOT" --headless --path "$PROJECT" --editor --quit >>"$LOGS/game.log" 2>&1
 
 # ---- run and restart
 keep_running() {   # keep_running <name> <log file> <command...>
@@ -98,7 +101,7 @@ SOURCE="tiktok @$USERNAME"
 sleep 2
 (
   export LIVEBRIDGE_TOKEN="$TOKEN"
-  keep_running game "$LOGS/game.log" "$GODOT" --path "$ROOT/game" -- --game="$GAME" --pack="$PACK"
+  keep_running game "$LOGS/game.log" "$GODOT" --path "$PROJECT" -- --game="$GAME" --pack="$PACK"
 ) &
 
 if command -v caffeinate >/dev/null 2>&1; then
