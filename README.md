@@ -6,6 +6,7 @@
 |---|---|
 | `bridge/` | LiveBridge: بيقرأ أحداث البث ويبعثها للعبة (Python) |
 | `game/` | الألعاب (Godot 4.3+): شدّ الحبل، تحدّي المعلومات (عام وكورة)، تسلّق البرج |
+| `arena/` | معركة الساحة 3D (مشروع Godot لحاله)، شوف `arena/README.md` |
 | `tools/make_music.py` | بيولّد موسيقى الخلفية (loops أصلية بدون حقوق) |
 | `run-live.sh` | تشغيل كل شي بأمر واحد |
 
@@ -16,6 +17,7 @@
 ./run-live.sh اسم_حسابك quiz football    # تحدّي الكورة
 ./run-live.sh اسم_حسابك tug_of_war       # شدّ الحبل
 ./run-live.sh اسم_حسابك climb            # تسلّق البرج
+./run-live.sh اسم_حسابك arena            # معركة الساحة (3D)
 ./run-live.sh mock quiz                  # تجربة بمشاهدين وهميين بدون TikTok
 ```
 
