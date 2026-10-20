@@ -4,10 +4,14 @@ extends RefCounted
 ## Fighters walk to the nearest rival and punch by themselves; viewers power them up.
 ## A punch adds damage and knocks the target back, harder the more damage it has taken.
 ## Off the edge = knocked out, and the KO goes to the last fighter who hit them.
-## Every minute the outer ring breaks away. Last one standing wins; at 5:00, the most KOs.
-## Rounds loop by themselves: fight -> result -> fight ...
+## Every minute the outer ring breaks away. The last one standing wins once they have been
+## alone on the island for alone_s (a newcomer dropping in breaks it); at 5:00, the most KOs.
+## Rounds loop by themselves: lobby (drop in, nobody fights) -> fight -> result -> lobby ...
 
 # Round and island
+var lobby_s := 30.0                     # dropping in before the fight
+var min_players := 2                    # the lobby waits for this many
+var alone_s := 30.0                     # the last one standing must stay alone this long
 var round_s := 300.0
 var result_s := 14.0
 var radii := [9.0, 7.5, 6.0, 4.5, 3.0]   # island radius after 0, 1, 2, 3, 4 collapses
@@ -45,11 +49,12 @@ var shockwave_push := 9.0
 var rng := RandomNumberGenerator.new()
 
 # Live state, read by the screen
-var phase := "fight"                    # fight | result
+var phase := "lobby"                    # lobby | fight | result
 var time_left := 0.0
 var round_no := 0
 var stage := 0                          # collapses done this round
 var warning := -1.0                     # seconds until the next collapse while it is announced
+var alone := -1.0                       # seconds the last fighter still has to hold out
 var fighters := {}                      # uid -> fighter dict (this round, alive or out)
 var winner := {}
 
@@ -141,6 +146,14 @@ func tick(delta: float) -> Array[Dictionary]:
 		if time_left <= 0.0:
 			_new_round(out)
 		return out
+	if phase == "lobby":
+		for uid in alive_ids():
+			fighters[uid]["drop"] = maxf(0.0, fighters[uid]["drop"] - delta)
+		if time_left <= 0.0:
+			time_left = 0.0                  # keeps waiting until enough players
+			if alive_ids().size() >= min_players:
+				begin_fight(out)
+		return out
 	_collapse_clock(out)
 	for uid in alive_ids():
 		_step(fighters[uid], delta, out)
@@ -149,10 +162,28 @@ func tick(delta: float) -> Array[Dictionary]:
 		var f: Dictionary = fighters[uid]
 		if f["pos"].length() > radius():
 			_knock_out(f, out)
-	var alive := alive_ids().size()
-	if (fighters.size() >= 2 and alive <= 1) or time_left <= 0.0:
+	var alive := alive_ids()
+	if alive.size() == 1 and fighters.size() >= 2:
+		if alone < 0.0:
+			alone = alone_s
+			out.append({"kind": "alone", "user": fighters[alive[0]]["user"], "seconds": alone_s})
+		alone = maxf(0.0, alone - delta)
+	elif alone >= 0.0:
+		alone = -1.0
+		out.append({"kind": "alone_broken"})
+	if alive.is_empty() or alone == 0.0 or time_left <= 0.0:
 		_end_round(out)
 	return out
+
+
+## Ends the lobby: the clock starts and fighters go for each other.
+func begin_fight(out: Array[Dictionary] = []) -> void:
+	phase = "fight"
+	time_left = round_s
+	alone = -1.0
+	for uid in alive_ids():
+		fighters[uid]["drop"] = 0.0
+	out.append({"kind": "fight_start", "fighters": alive_ids().size()})
 
 
 func _collapse_clock(out: Array[Dictionary]) -> void:
@@ -196,8 +227,8 @@ func _step(f: Dictionary, delta: float, out: Array[Dictionary]) -> void:
 		var t := _nearest(f)
 		var to_center: Vector2 = -pos
 		if t.is_empty():
-			if pos.length() > 0.5:
-				pos += to_center.normalized() * walk_speed * 0.5 * delta
+			if pos.length() > 0.5:                     # wander back to the middle, never past it
+				pos += to_center.normalized() * minf(walk_speed * 0.5 * delta, pos.length() - 0.5)
 		else:
 			var gap: Vector2 = t["pos"] - pos
 			f["target"] = str(t["user"]["id"])
@@ -293,7 +324,7 @@ func handle(ev: Dictionary) -> Array[Dictionary]:
 	var uid := str(user["id"])
 	players[uid] = user
 	last_seen[uid] = _clock
-	if phase != "fight":
+	if phase == "result":
 		return out                       # they fight from the next round
 	if not fighters.has(uid):
 		if alive_ids().size() >= max_fighters:
@@ -311,6 +342,8 @@ func handle(ev: Dictionary) -> Array[Dictionary]:
 			f["shield"] = true
 			out.append({"kind": "shield", "user": user})
 		"share":
+			if phase == "lobby":
+				return out                   # nothing to dash at yet
 			var t := _nearest(f)
 			var dir: Vector2 = (t["pos"] - f["pos"]).normalized() if not t.is_empty() else -f["pos"].normalized()
 			f["dash"] = dash_s
@@ -325,7 +358,8 @@ func handle(ev: Dictionary) -> Array[Dictionary]:
 				"large":
 					f["giant"] = giant_s
 					out.append({"kind": "giant", "user": user, "gift": gift})
-					_shockwave(f, out)
+					if phase == "fight":
+						_shockwave(f, out)
 				"medium":
 					f["hammer"] = hammer_s
 					out.append({"kind": "hammer", "user": user, "gift": gift})
@@ -379,6 +413,7 @@ func _end_round(out: Array[Dictionary]) -> void:
 	phase = "result"
 	time_left = result_s
 	warning = -1.0
+	alone = -1.0
 	var alive := alive_ids()
 	var pool: Array = alive if not alive.is_empty() else fighters.keys()
 	var best := ""
@@ -403,14 +438,15 @@ func _end_round(out: Array[Dictionary]) -> void:
 
 func _new_round(out: Array[Dictionary]) -> void:
 	round_no += 1
-	phase = "fight"
-	time_left = round_s
+	phase = "lobby"
+	time_left = lobby_s
 	stage = 0
 	warning = -1.0
+	alone = -1.0
 	fighters.clear()
 	var back := last_seen.keys().filter(func(uid): return _clock - last_seen[uid] <= recent_s)
 	back.sort_custom(func(a, b): return last_seen[a] > last_seen[b])     # most recent first
 	var spawned: Array[Dictionary] = []
 	for uid in back.slice(0, max_fighters):
 		_spawn(players[uid], spawned)
-	out.append({"kind": "round_start", "round": round_no, "fighters": spawned.size()})
+	out.append({"kind": "round_start", "round": round_no, "fighters": spawned.size(), "lobby": lobby_s})

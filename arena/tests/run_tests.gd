@@ -33,6 +33,7 @@ func arena() -> ArenaLogic:
 	var a := ArenaLogic.new()
 	a.rng.seed = 11
 	a.start()
+	a.begin_fight()                  # most tests skip the lobby
 	return a
 
 
@@ -148,7 +149,11 @@ func test_off_the_edge_is_a_ko_for_the_last_hitter() -> void:
 		out.append_array(a.tick(0.1))
 	check("ko" in kinds(out), "knocked off")
 	check(a.fighters["1"]["kos"] == 1 and not a.fighters["2"]["alive"], "KO credited")
-	check("round_end" in kinds(out) and a.winner["user"]["id"] == "1" and a.winner["last_standing"], "last one standing wins")
+	check("alone" in kinds(out) and not "round_end" in kinds(out), "alone, not won yet")
+	out = []
+	for i in int(a.alone_s * 10) + 1:
+		out.append_array(a.tick(0.1))
+	check("round_end" in kinds(out) and a.winner["user"]["id"] == "1" and a.winner["last_standing"], "wins after holding out alone")
 
 
 func test_walking_off_alone_gives_no_credit() -> void:
@@ -197,6 +202,7 @@ func test_timeout_most_kos_wins_and_hall_of_fame() -> void:
 	check(a.handle({"type": "like", "user": u("9"), "count": 3}).is_empty(), "no joining between rounds")
 	out = a.tick(a.result_s + 0.1)
 	check(kinds(out) == ["round_start"] and out[0]["fighters"] == 3, "next round brings everyone back")
+	check(a.phase == "lobby" and is_equal_approx(a.time_left, a.lobby_s), "starting with the lobby")
 
 
 func test_one_viewer_alone_keeps_fighting() -> void:
@@ -267,3 +273,65 @@ func test_camera_priorities() -> void:
 	c.tick(3.5, a)
 	c.ko(u("2"), Vector2(1, 1))
 	check(c.tick(0.1, a)["kind"] == "ko", "then the knockout")
+
+
+# ---------------------------------------------------------------- lobby and holding out alone
+
+func test_lobby_drops_in_without_fighting_then_starts() -> void:
+	var a := ArenaLogic.new()
+	a.rng.seed = 2
+	a.start()
+	check(a.phase == "lobby", "round opens with the lobby")
+	a.handle({"type": "join", "user": u("1")})
+	a.handle({"type": "join", "user": u("2")})
+	a.fighters["1"]["pos"] = Vector2(-0.5, 0)
+	a.fighters["2"]["pos"] = Vector2(0.5, 0)
+	var out: Array[Dictionary] = []
+	for i in 20:
+		out.append_array(a.tick(1.0))
+	check(not "punch" in kinds(out) and a.phase == "lobby", "nobody fights in the lobby")
+	out = a.tick(a.lobby_s)
+	check(kinds(out) == ["fight_start"] and a.phase == "fight" and is_equal_approx(a.time_left, a.round_s), "then the fight starts")
+
+
+func test_lobby_waits_for_two_players() -> void:
+	var a := ArenaLogic.new()
+	a.start()
+	a.handle({"type": "join", "user": u("1")})
+	a.tick(a.lobby_s + 5.0)
+	check(a.phase == "lobby", "one player keeps waiting")
+	a.handle({"type": "join", "user": u("2")})
+	check(kinds(a.tick(0.1)) == ["fight_start"], "the second one starts it")
+
+
+func test_lobby_gifts_wait_for_the_fight() -> void:
+	var a := ArenaLogic.new()
+	a.start()
+	a.handle({"type": "join", "user": u("2")})
+	var out := a.handle({"type": "gift", "user": u("1"), "count": 1, "gift": {"tier": "large"}})
+	check(kinds(out) == ["joined", "giant"], "giant, but no shockwave in the lobby")
+	check(a.handle({"type": "share", "user": u("1")}).is_empty(), "no dash in the lobby")
+	a.tick(a.lobby_s + 0.1)
+	check(is_equal_approx(a.fighters["1"]["giant"], a.giant_s), "the giant lasts the full time once fighting")
+
+
+func test_newcomer_breaks_the_last_one_standing() -> void:
+	var a := arena()
+	duel(a)
+	a.fighters["2"]["alive"] = false
+	var out := a.tick(0.1)
+	check("alone" in kinds(out) and a.alone > 0.0, "alone clock started")
+	a.tick(a.alone_s - 5.0)
+	out = a.handle({"type": "join", "user": u("3")})
+	out.append_array(a.tick(0.1))
+	check("alone_broken" in kinds(out) and a.alone < 0.0 and a.phase == "fight", "a challenger dropped in")
+
+
+func test_everyone_falls_ends_the_round() -> void:
+	var a := arena()
+	duel(a)
+	a.fighters["1"]["kos"] = 1
+	a.fighters["1"]["pos"] = Vector2(a.radius() + 1.0, 0)
+	a.fighters["2"]["pos"] = Vector2(-a.radius() - 1.0, 0)
+	var out := a.tick(0.05)
+	check(kinds(out)[-1] == "round_end" and a.winner["user"]["id"] == "1" and not a.winner["survived"], "most KOs wins")
