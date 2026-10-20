@@ -20,6 +20,8 @@ var collapse_every := 60.0
 var warn_s := 10.0
 var max_fighters := 40
 var bot_count := 3                      # house fighters named after the host, every round
+var bot_punch := 0.5                    # bots hit half as hard (knockback and damage)
+var bot_knock := 1.4                    # and fly farther when a viewer hits them
 var join_likes := 5                     # likes it takes to drop in (any comment, follow, share or gift: at once)
 var recent_s := 600.0                   # who is brought back for the next round
 # Fighting
@@ -34,9 +36,9 @@ var knock_per_damage := 0.028
 var friction := 4.5
 var ko_credit_s := 4.0
 # Interactions
-var like_power := 0.02                  # per like: +2% knockback, up to max_power
-var max_power := 1.0
-var power_decay := 0.1                  # per second
+var like_power := 0.05                  # per like: +5% knockback, up to max_power
+var max_power := 1.5                    # 30 likes: punches knock 2.5x as far
+var power_decay := 0.03                 # per second: a full charge lasts close to a minute
 var dash_speed := 13.0
 var dash_s := 0.45
 var dash_mult := 1.6
@@ -304,11 +306,16 @@ func _punch(a: Dictionary, t: Dictionary, extra: float, out: Array[Dictionary]) 
 		out.append({"kind": "shield_break", "user": t["user"], "by": a["user"]})
 		return
 	var mult: float = (1.0 + a["power"]) * extra
+	var by_bot := is_bot(str(a["user"]["id"]))
+	if by_bot:
+		mult *= bot_punch
+	elif is_bot(str(t["user"]["id"])):
+		mult *= bot_knock
 	if a["hammer"] > 0.0:
 		mult *= hammer_mult
 	if a["giant"] > 0.0:
 		mult *= giant_mult
-	t["damage"] += punch_damage * (1.5 if a["hammer"] > 0.0 or a["giant"] > 0.0 else 1.0)
+	t["damage"] += punch_damage * (1.5 if a["hammer"] > 0.0 or a["giant"] > 0.0 else 1.0) * (bot_punch if by_bot else 1.0)
 	var push: float = (knock_base + t["damage"] * knock_per_damage) * mult
 	if t["giant"] > 0.0:
 		push *= giant_resist
