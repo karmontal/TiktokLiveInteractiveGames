@@ -141,3 +141,9 @@ godot --headless --path game -s res://tests/run_tests.gd    # كلهم لازم 
 
 ## الخط
 Cairo (SIL Open Font License، `assets/fonts/OFL.txt`).
+
+## نسخة ويندوز للكويز (لأي حدا)
+
+`tools/windows_quiz/build.sh` بيعمل `build/TikTokQuiz-windows.zip`: لعبة الكويز لحالها مع LiveBridge وبايثون خاص فيها،
+ما بدها تنزيل أي شي. الشخص بيفك الضغط، بيشغّل `QuizGame.exe`، بيكتب اسم حسابه وبيختار الأسئلة، والباقي لحاله
+(`launcher/Launcher.gd`). التعليمات للي بيشغّلها بـ `tools/windows_quiz/README-windows.txt`.

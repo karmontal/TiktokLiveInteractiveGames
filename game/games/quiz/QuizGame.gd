@@ -22,6 +22,7 @@ const GIFT_ROWS := [
 ]
 
 var logic := QuizLogic.new()
+var pack := DEFAULT_PACK          # set before adding to the tree; user arg --pack=<name> wins
 var title := "تحدّي المعلومات"
 var music := "quiz_think"
 # Colors; a pack can override them with "theme": {"bg", "card", "panel", "bar", "accent"}
@@ -104,7 +105,6 @@ func _process(delta: float) -> void:
 
 
 func _load_pack() -> void:
-	var pack := DEFAULT_PACK
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--pack="):
 			pack = arg.trim_prefix("--pack=")
