@@ -3,6 +3,7 @@ extends Node
 ## Games: tug_of_war, quiz, climb.
 ##   --fps-log           print FPS every 5 s (for the server benchmark)
 ## In debug builds (running from the editor) Tab switches to the next game.
+## The standalone quiz build (export feature "quiz_app") opens its start screen instead: launcher/Launcher.gd.
 
 const GAMES := {
 	"tug_of_war": "res://games/tug_of_war/TugOfWar.gd",
@@ -16,6 +17,9 @@ var _game := ""
 
 
 func _ready() -> void:
+	if OS.has_feature("quiz_app"):
+		add_child(load("res://launcher/Launcher.gd").new())
+		return
 	var game := OS.get_environment("LIVE_GAME")
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--game="):
